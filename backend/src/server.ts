@@ -83,10 +83,12 @@ app.use('*', (req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-});
+// Start server (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+    logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+  });
+}
 
 export default app;
