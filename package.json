@@ -1,0 +1,17 @@
+{
+  "name": "auth-system",
+  "version": "1.0.0",
+  "description": "Full-stack authentication system",  "scripts": {
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "start": "cd backend && npm start",
+    "deploy:backend": "cd backend && vercel --prod",
+    "deploy:frontend": "cd frontend && vercel --prod",
+    "deploy:all": "npm run deploy:backend && npm run deploy:frontend"
+  },
+  "keywords": ["auth", "nodejs", "express", "typescript", "react", "jwt"],
+  "author": "",
+  "license": "MIT"
+}

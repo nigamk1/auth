@@ -251,18 +251,42 @@ GET    /api/protected/analytics   # User analytics
 
 ## 🚀 Deployment
 
-### Backend Deployment (Railway/Render/Heroku)
+### Quick Deployment to Vercel
 
-1. **Environment Variables**: Set all required environment variables
-2. **Database**: Use MongoDB Atlas for production
-3. **Build Command**: `npm run build`
-4. **Start Command**: `npm start`
+This project is optimized for Vercel deployment. See our detailed [Deployment Guide](DEPLOYMENT.md) for complete instructions.
 
-### Frontend Deployment (Vercel/Netlify)
+**Frontend (Vercel):**
+```bash
+cd frontend
+vercel --prod
+```
 
-1. **Build Command**: `npm run build`
-2. **Output Directory**: `dist`
-3. **Environment Variables**: Set `VITE_API_URL` to production backend URL
+**Backend (Vercel Serverless):**
+```bash
+cd backend  
+vercel --prod
+```
+
+### Alternative Deployment Options
+
+**Backend:** Railway, Render, Heroku, or any Node.js hosting service
+**Frontend:** Vercel, Netlify, or any static hosting service
+
+### Environment Variables
+
+Set the following environment variables in your deployment platform:
+
+**Backend:**
+- `MONGODB_URI` - MongoDB connection string
+- `JWT_SECRET` - JWT signing secret  
+- `JWT_REFRESH_SECRET` - Refresh token secret
+- `EMAIL_*` - Email service configuration
+- `ALLOWED_ORIGINS` - Frontend domain for CORS
+
+**Frontend:**
+- `VITE_API_URL` - Backend API URL
+
+📖 **For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md)**
 
 ## 📝 License
 
