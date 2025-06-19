@@ -1,0 +1,39 @@
+# Render ignore file
+# Files and directories to ignore during deployment
+
+# Development files
+.env
+.env.local
+.env.development
+*.log
+logs/
+
+# Dependencies
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Test files
+coverage/
+*.test.ts
+*.test.js
+__tests__/
+
+# Documentation (optional)
+docs/
+*.md
+
+# Source maps (optional for production)
+*.map

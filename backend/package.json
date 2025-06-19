@@ -5,9 +5,10 @@
   "main": "dist/server.js",  "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
-    "build": "tsc",
+    "build": "npm run clean && tsc",
     "build:watch": "tsc --watch",
     "clean": "rimraf dist",
+    "postinstall": "npm run build",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:email": "ts-node scripts/test-email.ts"

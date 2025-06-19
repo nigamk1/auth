@@ -48,12 +48,12 @@ const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
       'http://localhost:5173',
       'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173'
+      'http://127.0.0.1:5173',
+      'https://auth-frontend-app.onrender.com'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
@@ -77,8 +77,17 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Health check endpoint
+// Health check endpoints
 app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'Auth API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
+app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Auth API is running',
@@ -103,12 +112,10 @@ app.use('*', (req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-// Start server (only in development)
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-    logger.info(`📊 Health check: http://localhost:${PORT}/health`);
-  });
-}
+// Start server
+app.listen(PORT, () => {
+  logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+});
 
 export default app;

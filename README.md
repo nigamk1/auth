@@ -321,6 +321,35 @@ npm run test:email your-test-email@example.com
 
 📖 **Detailed Instructions**: See [GMAIL_SETUP.md](GMAIL_SETUP.md) for complete setup guide.
 
+## 🚀 Deployment
+
+This application is ready for deployment on various platforms. We provide comprehensive guides for:
+
+### Render (Recommended for beginners)
+- **Free tier available** with automatic deployments
+- **Full guide**: See [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md)
+- Includes both backend API and frontend static hosting
+
+### Quick Render Deployment:
+1. Push your code to GitHub
+2. Create Render account and connect repository
+3. Deploy backend as Web Service (Node.js)
+4. Deploy frontend as Static Site
+5. Configure environment variables
+6. Update CORS origins with production URLs
+
+**Configuration files included:**
+- `render.yaml` - Infrastructure as code
+- `backend/Dockerfile` - Container configuration
+- Production environment templates
+
+### Other Platforms
+The application can also be deployed to:
+- **Vercel** (frontend) + **Railway** (backend)
+- **Netlify** (frontend) + **Heroku** (backend) 
+- **AWS** (full stack with EC2/Lambda)
+- **DigitalOcean App Platform**
+
 ### Other Common Issues
 
 #### Database Connection
