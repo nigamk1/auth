@@ -15,12 +15,25 @@ import type {
 } from '../types';
 
 // Create axios instance
+const getBaseURL = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  
+  // Fallback for development
+  if (!apiUrl) {
+    return 'http://localhost:5000/api';
+  }
+  
+  // Ensure URL ends with /api if not already present
+  return apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`;
+};
+
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: getBaseURL(),
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for CORS with credentials
 });
 
 // Token storage utilities

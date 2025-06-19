@@ -55,10 +55,22 @@ const corsOptions = {
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5173'
     ];
+
+    // Add frontend URL for production
+    if (process.env.FRONTEND_URL) {
+      allowedOrigins.push(process.env.FRONTEND_URL);
+      allowedOrigins.push(process.env.FRONTEND_URL.replace('http://', 'https://'));
+    }
+
+    // Allow Render preview deployments
+    if (origin && (origin.includes('.onrender.com') || origin.includes('render.com'))) {
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
+      logger.warn(`CORS blocked request from origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -77,13 +89,23 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Health check endpoint
+// Health check endpoints
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     message: 'Auth API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'Auth API is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    database: 'connected' // You can add actual DB connection check here
   });
 });
 
@@ -103,12 +125,22 @@ app.use('*', (req, res) => {
 // Global error handler
 app.use(errorHandler);
 
-// Start server (only in development)
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-    logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+// Start server
+const server = app.listen(PORT, () => {
+  logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+  if (process.env.NODE_ENV === 'development') {
+    logger.info(`📡 API endpoints: http://localhost:${PORT}/api`);
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    logger.info('Process terminated');
+    process.exit(0);
   });
-}
+});
 
 export default app;

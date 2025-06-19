@@ -251,26 +251,37 @@ GET    /api/protected/analytics   # User analytics
 
 ## 🚀 Deployment
 
-### Quick Deployment to Vercel
+### Quick Deploy to Render
 
-This project is optimized for Vercel deployment. See our detailed [Deployment Guide](DEPLOYMENT.md) for complete instructions.
+This project is configured for easy deployment to Render using the included `render.yaml` configuration.
 
-**Frontend (Vercel):**
-```bash
-cd frontend
-vercel --prod
-```
+#### Prerequisites
+- Git repository (GitHub, GitLab, or Bitbucket)
+- MongoDB Atlas account (for database)
+- Email provider (Gmail recommended)
 
-**Backend (Vercel Serverless):**
-```bash
-cd backend  
-vercel --prod
-```
+#### Steps
+1. **Push to Git**: Ensure your code is in a Git repository
+2. **Create Render Account**: Sign up at [render.com](https://render.com)
+3. **Deploy with Blueprint**: 
+   - Click "New" → "Blueprint"
+   - Connect your repository
+   - Render will detect `render.yaml` automatically
+4. **Set Environment Variables**: Configure email and OAuth credentials in Render dashboard
+5. **Deploy**: Your app will be live in minutes!
+
+📖 **Detailed Instructions**: See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment guide
+
+#### Live URLs After Deployment
+- **Backend API**: `https://your-backend.onrender.com`
+- **Frontend App**: `https://your-frontend.onrender.com`
+- **Health Check**: `https://your-backend.onrender.com/api/health`
 
 ### Alternative Deployment Options
-
-**Backend:** Railway, Render, Heroku, or any Node.js hosting service
-**Frontend:** Vercel, Netlify, or any static hosting service
+- **Vercel**: Frontend optimized for Vercel deployment
+- **Railway**: Alternative to Render with similar setup
+- **Docker**: Dockerfile included for containerized deployment
+- **VPS**: Manual deployment instructions available
 
 ### Environment Variables
 

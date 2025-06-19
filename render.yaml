@@ -1,0 +1,87 @@
+services:
+  # Backend API Service
+  - type: web
+    name: auth-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: auth-mongodb
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: PASSWORD_RESET_SECRET
+        generateValue: true
+      - key: PASSWORD_RESET_EXPIRES_IN
+        value: 10m
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: auth-frontend
+          property: host
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_SECURE
+        value: false
+      - key: EMAIL_USER
+        sync: false # Set manually in Render dashboard
+      - key: EMAIL_PASS
+        sync: false # Set manually in Render dashboard
+      - key: EMAIL_FROM
+        sync: false # Set manually in Render dashboard
+
+  # Frontend Static Site
+  - type: web
+    name: auth-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: auth-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_APP_NAME
+        value: Auth System
+      - key: VITE_APP_VERSION
+        value: 1.0.0
+      - key: VITE_TOKEN_STORAGE_KEY
+        value: auth_token
+      - key: VITE_REFRESH_TOKEN_STORAGE_KEY
+        value: refresh_token
+      - key: VITE_ENABLE_GOOGLE_AUTH
+        value: true
+      - key: VITE_ENABLE_GITHUB_AUTH
+        value: true
+      - key: VITE_ENABLE_EMAIL_VERIFICATION
+        value: true
+      - key: VITE_ENABLE_PASSWORD_RESET
+        value: true
+
+databases:
+  - name: auth-mongodb
+    databaseName: auth_system
+    user: auth_user
+    plan: free

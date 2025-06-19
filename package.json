@@ -1,0 +1,22 @@
+{
+  "name": "auth-system",
+  "version": "1.0.0",
+  "description": "Full-stack authentication system",
+  "private": true,
+  "scripts": {
+    "install:backend": "cd backend && npm install",
+    "install:frontend": "cd frontend && npm install",
+    "install:all": "npm run install:backend && npm run install:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run preview",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "clean": "cd backend && npm run clean && cd ../frontend && rm -rf dist"
+  },
+  "keywords": ["auth", "nodejs", "express", "typescript", "react", "jwt", "oauth"],
+  "author": "",
+  "license": "MIT"
+}
