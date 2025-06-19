@@ -12,6 +12,7 @@
     "start:backend": "cd backend && npm start",
     "start:frontend": "cd frontend && npm run preview",
     "start": "npm run start:backend",
+    "start:combined": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "clean": "cd backend && npm run clean && cd ../frontend && rm -rf dist",
     "test": "echo \"Run tests from individual packages\" && exit 0"
   },"keywords": ["auth", "nodejs", "express", "typescript", "react", "jwt", "oauth"],

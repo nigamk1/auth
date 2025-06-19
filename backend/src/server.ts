@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDB } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -89,6 +90,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Serve static files for frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+  });
+}
+
 // Health check endpoints
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -114,13 +124,32 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/protected', protectedRoutes);
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route ${req.originalUrl} not found`
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from frontend dist
+  app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+    // Handle React routing - send all non-API requests to index.html
+  app.get('*', (req, res) => {
+    // Don't interfere with API routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
+      res.status(404).json({
+        success: false,
+        message: `Route ${req.originalUrl} not found`
+      });
+      return;
+    }
+    
+    res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
   });
-});
+} else {
+  // 404 handler for development
+  app.use('*', (req, res) => {
+    res.status(404).json({
+      success: false,
+      message: `Route ${req.originalUrl} not found`
+    });
+  });
+}
 
 // Global error handler
 app.use(errorHandler);
