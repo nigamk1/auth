@@ -11,12 +11,10 @@
     "build:all": "npm run build:backend && npm run build:frontend",
     "start:backend": "cd backend && npm start",
     "start:frontend": "cd frontend && npm run preview",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "start": "npm run start:backend",
-    "clean": "cd backend && npm run clean && cd ../frontend && rm -rf dist"
-  },  "keywords": ["auth", "nodejs", "express", "typescript", "react", "jwt", "oauth"],
+    "clean": "cd backend && npm run clean && cd ../frontend && rm -rf dist",
+    "test": "echo \"Run tests from individual packages\" && exit 0"
+  },"keywords": ["auth", "nodejs", "express", "typescript", "react", "jwt", "oauth"],
   "author": "",
   "license": "MIT",
   "devDependencies": {
