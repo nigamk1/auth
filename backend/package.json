@@ -10,7 +10,9 @@
     "clean": "rimraf dist",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:email": "ts-node scripts/test-email.ts"
+    "test:email": "ts-node scripts/test-email.ts",
+    "vercel-build": "tsc",
+    "postinstall": "tsc"
   },
   "keywords": ["auth", "nodejs", "express", "typescript", "jwt", "oauth"],
   "author": "",

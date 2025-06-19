@@ -2,9 +2,8 @@
     "target": "ES2020",
     "module": "commonjs",
     "lib": ["ES2020", "DOM"],
-    "types": ["node"],
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "types": ["node"],    "outDir": "./dist",
+    "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -35,9 +34,9 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
-  },
-  "include": [
-    "src/**/*"
+  },  "include": [
+    "src/**/*",
+    "api/**/*"
   ],
   "exclude": [
     "node_modules",
