@@ -14,9 +14,35 @@ import type {
   UserStats
 } from '../types';
 
+// Environment-based API URL configuration
+const getApiUrl = (): string => {
+  // Check if we have an environment variable set
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Fallback based on current hostname
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    
+    // Production check
+    if (hostname.includes('onrender.com') || hostname.includes('auth-tedq')) {
+      return 'https://auth-tedq.onrender.com/api';
+    }
+    
+    // Local development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
+  }
+  
+  // Default fallback
+  return 'http://localhost:5000/api';
+};
+
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: getApiUrl(),
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',

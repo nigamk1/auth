@@ -47,13 +47,12 @@ app.use('/api/auth', authLimiter);
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+    if (!origin) return callback(null, true);    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
       'http://localhost:5173',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:5173',
-      'https://auth-frontend-app.onrender.com'
+      'https://auth-tedq.onrender.com'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {

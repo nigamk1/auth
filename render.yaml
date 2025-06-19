@@ -26,9 +26,8 @@ services:
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS
-        sync: false
-      - key: FRONTEND_URL
-        value: https://auth-frontend-app.onrender.com
+        sync: false      - key: FRONTEND_URL
+        value: https://auth-tedq.onrender.com
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -48,4 +47,4 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://auth-backend-api.onrender.com/api
+        value: https://auth-tedq.onrender.com/api
