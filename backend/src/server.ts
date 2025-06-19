@@ -104,7 +104,7 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 // Start server (only in development)
-if (process.env.NODE_ENV !== 'production') {
+if (require.main === module && process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
     logger.info(`📊 Health check: http://localhost:${PORT}/health`);
