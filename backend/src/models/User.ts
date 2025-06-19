@@ -3,11 +3,9 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { IUser } from '../types';
 
-const userSchema = new Schema<IUser>({
-  email: {
+const userSchema = new Schema<IUser>({  email: {
     type: String,
     required: [true, 'Email is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [
@@ -60,17 +58,14 @@ const userSchema = new Schema<IUser>({
     type: String,
     select: false
   }],
-  
-  // OAuth fields
+    // OAuth fields
   googleId: {
     type: String,
-    sparse: true,
-    unique: true
+    sparse: true
   },
   githubId: {
     type: String,
-    sparse: true,
-    unique: true
+    sparse: true
   },
   
   // Profile fields
@@ -118,9 +113,9 @@ const userSchema = new Schema<IUser>({
 });
 
 // Indexes for better performance
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
-userSchema.index({ githubId: 1 });
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+userSchema.index({ githubId: 1 }, { unique: true, sparse: true });
 userSchema.index({ passwordResetToken: 1 });
 userSchema.index({ emailVerificationToken: 1 });
 
