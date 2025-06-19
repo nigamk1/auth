@@ -288,6 +288,57 @@ Set the following environment variables in your deployment platform:
 
 📖 **For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md)**
 
+## 🔧 Troubleshooting
+
+### Email Configuration Issues
+
+If you're experiencing email-related errors (like password reset emails not sending), it's likely due to Gmail authentication requirements.
+
+#### Common Error: "Application-specific password required"
+
+**Solution**: Set up Gmail App Password
+
+1. Enable 2-Factor Authentication on your Google account
+2. Generate an App Password for the application
+3. Update your `.env` file with the App Password
+
+**Quick Setup:**
+```bash
+# In backend/.env
+EMAIL_SERVICE=gmail
+EMAIL_USER=your-email@gmail.com
+EMAIL_APP_PASSWORD=your-16-character-app-password
+EMAIL_FROM=your-email@gmail.com
+```
+
+**Test Email Configuration:**
+```bash
+cd backend
+npm run test:email
+# Or test with a specific email
+npm run test:email your-test-email@example.com
+```
+
+📖 **Detailed Instructions**: See [GMAIL_SETUP.md](GMAIL_SETUP.md) for complete setup guide.
+
+### Other Common Issues
+
+#### Database Connection
+- Ensure MongoDB is running locally or check your MongoDB Atlas connection string
+- Verify `MONGODB_URI` in your `.env` file
+
+#### JWT Errors
+- Make sure `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are set
+- Use strong, unique secrets (32+ characters recommended)
+
+#### CORS Issues
+- Check `ALLOWED_ORIGINS` in your backend `.env`
+- Ensure frontend URL is included in allowed origins
+
+Need help? Check the logs for detailed error messages or create an issue on GitHub.
+
+Built with ❤️ using modern web technologies. Perfect for startups, SaaS applications, and enterprise projects requiring robust authentication.
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -312,5 +363,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Admin dashboard and user management
 - [ ] Avatar upload functionality
 - [ ] Advanced security features
-
-Built with ❤️ using modern web technologies. Perfect for startups, SaaS applications, and enterprise projects requiring robust authentication.

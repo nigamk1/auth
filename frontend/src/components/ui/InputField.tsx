@@ -1,22 +1,20 @@
-import React from 'react';
-import type { InputFieldProps } from '../../types';
+import React from "react";
+import type { InputFieldProps } from "../../types";
 
 const InputField: React.FC<InputFieldProps> = ({
   label,
   name,
-  type = 'text',
+  type = "text",
   placeholder,
   required = false,
   error,
   register,
-  className = '',
+  className = "",
   ...props
 }) => {
-  const inputClasses = [
-    'input',
-    error ? 'input-error' : '',
-    className,
-  ].filter(Boolean).join(' ');
+  const inputClasses = ["input", error ? "input-error" : "", className]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="space-y-1">
@@ -32,9 +30,7 @@ const InputField: React.FC<InputFieldProps> = ({
         {...register(name)}
         {...props}
       />
-      {error && (
-        <p className="error-text">{error}</p>
-      )}
+      {error && <p className="error-text">{error}</p>}
     </div>
   );
 };

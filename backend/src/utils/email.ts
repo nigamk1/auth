@@ -3,14 +3,44 @@ import { logger } from './logger';
 
 // Email transporter configuration
 const createTransporter = () => {
+  const emailService = process.env.EMAIL_SERVICE || 'gmail';
+  
+  // Gmail configuration with App Password support
+  if (emailService === 'gmail') {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD || process.env.EMAIL_PASSWORD
+      },
+      // Additional Gmail configuration
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      rateDelta: 20000,
+      rateLimit: 5
+    });
+  }
+  
+  // Generic SMTP configuration for other providers
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: false, // true for 465, false for other ports
+    secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
-    }
+      pass: process.env.EMAIL_APP_PASSWORD || process.env.EMAIL_PASSWORD
+    },
+    // Additional configuration for better reliability
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 20000,
+    rateLimit: 5,
+    // Timeout settings
+    connectionTimeout: 10000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000
   });
 };
 
@@ -116,7 +146,17 @@ export const sendWelcomeEmail = async (email: string, firstName: string): Promis
 
     const result = await transporter.sendMail(mailOptions);
     logger.info(`Welcome email sent successfully to ${email}`, { messageId: result.messageId });
-  } catch (error) {
+  } catch (error: any) {
+    // Enhanced error logging for Gmail authentication issues
+    if (error.code === 'EAUTH') {
+      logger.error(`Gmail authentication failed for ${email}. Please check EMAIL_APP_PASSWORD configuration.`, {
+        code: error.code,
+        response: error.response,
+        command: error.command
+      });
+      throw new Error('Email authentication failed. Please check your Gmail App Password configuration.');
+    }
+    
     logger.error(`Failed to send welcome email to ${email}:`, error);
     throw error;
   }
@@ -140,7 +180,17 @@ export const sendPasswordResetEmail = async (
 
     const result = await transporter.sendMail(mailOptions);
     logger.info(`Password reset email sent successfully to ${email}`, { messageId: result.messageId });
-  } catch (error) {
+  } catch (error: any) {
+    // Enhanced error logging for Gmail authentication issues
+    if (error.code === 'EAUTH') {
+      logger.error(`Gmail authentication failed for ${email}. Please check EMAIL_APP_PASSWORD configuration.`, {
+        code: error.code,
+        response: error.response,
+        command: error.command
+      });
+      throw new Error('Email authentication failed. Please check your Gmail App Password configuration.');
+    }
+    
     logger.error(`Failed to send password reset email to ${email}:`, error);
     throw error;
   }
@@ -153,8 +203,16 @@ export const testEmailConfig = async (): Promise<boolean> => {
     await transporter.verify();
     logger.info('Email configuration is valid');
     return true;
-  } catch (error) {
-    logger.error('Email configuration test failed:', error);
+  } catch (error: any) {
+    if (error.code === 'EAUTH') {
+      logger.error('Gmail authentication failed. Please check EMAIL_APP_PASSWORD configuration.', {
+        code: error.code,
+        response: error.response,
+        command: error.command
+      });
+    } else {
+      logger.error('Email configuration test failed:', error);
+    }
     return false;
   }
 };

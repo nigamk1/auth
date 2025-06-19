@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { useAuth } from '../../contexts/AuthContext';
-import { updateProfileSchema } from '../../utils/validation';
-import Button from '../ui/Button';
-import InputField from '../ui/InputField';
-import Alert from '../ui/Alert';
-import LoadingSpinner from '../ui/LoadingSpinner';
-import type { UpdateProfileRequest } from '../../types';
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useAuth } from "../../contexts/AuthContext";
+import { updateProfileSchema } from "../../utils/validation";
+import Button from "../ui/Button";
+import InputField from "../ui/InputField";
+import Alert from "../ui/Alert";
+import LoadingSpinner from "../ui/LoadingSpinner";
+import type { UpdateProfileRequest } from "../../types";
 
 export const UserProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [message, setMessage] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   const {
     register,
@@ -21,7 +21,7 @@ export const UserProfilePage: React.FC = () => {
     formState: { errors },
     reset,
   } = useForm<UpdateProfileRequest>({
-    resolver: yupResolver(updateProfileSchema),
+    resolver: yupResolver(updateProfileSchema) as any,
   });
 
   useEffect(() => {
@@ -29,9 +29,9 @@ export const UserProfilePage: React.FC = () => {
       reset({
         firstName: user.firstName,
         lastName: user.lastName,
-        bio: user.bio || '',
-        dateOfBirth: user.dateOfBirth || '',
-        phoneNumber: user.phoneNumber || '',
+        bio: user.bio || "",
+        dateOfBirth: user.dateOfBirth || "",
+        phoneNumber: user.phoneNumber || "",
       });
     }
   }, [user, reset]);
@@ -39,13 +39,13 @@ export const UserProfilePage: React.FC = () => {
   const onSubmit = async (data: UpdateProfileRequest) => {
     try {
       setIsLoading(true);
-      setError('');
-      setMessage('');
+      setError("");
+      setMessage("");
 
       await updateProfile(data);
-      setMessage('Profile updated successfully!');
+      setMessage("Profile updated successfully!");
     } catch (err: any) {
-      setError(err.message || 'Failed to update profile');
+      setError(err.message || "Failed to update profile");
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +85,10 @@ export const UserProfilePage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="bio"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Bio
               </label>
               <textarea
@@ -93,10 +96,12 @@ export const UserProfilePage: React.FC = () => {
                 rows={4}
                 className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="Tell us about yourself..."
-                {...register('bio')}
+                {...register("bio")}
               />
               {errors.bio && (
-                <p className="mt-1 text-sm text-red-600">{errors.bio.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.bio.message}
+                </p>
               )}
             </div>
 

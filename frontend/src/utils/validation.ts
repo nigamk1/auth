@@ -71,27 +71,30 @@ export const updateProfileSchema = yup.object({
     .trim()
     .min(1, 'First name is required')
     .max(50, 'Maximum 50 characters allowed')
-    .optional(),
+    .required('First name is required'),
   lastName: yup
     .string()
     .trim()
     .min(1, 'Last name is required')
     .max(50, 'Maximum 50 characters allowed')
-    .optional(),
+    .required('Last name is required'),
   bio: yup
     .string()
     .max(500, 'Bio cannot exceed 500 characters')
-    .optional(),
+    .optional()
+    .transform((value) => value === '' ? undefined : value),
   dateOfBirth: yup
     .string()
-    .optional(),
+    .optional()
+    .transform((value) => value === '' ? undefined : value),
   phoneNumber: yup
     .string()
-    .matches(
-      /^[\+]?[1-9][\d]{0,15}$/,
-      'Please enter a valid phone number'
-    )
-    .optional(),
+    .optional()
+    .transform((value) => value === '' ? undefined : value)
+    .test('is-valid-phone', 'Please enter a valid phone number', (value) => {
+      if (!value) return true; // Allow empty values
+      return /^[\+]?[1-9][\d]{0,15}$/.test(value);
+    }),
 });
 
 // Validation helper functions

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { Layout } from '../ui/Layout';
-import LoadingSpinner from '../ui/LoadingSpinner';
-import Alert from '../ui/Alert';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { Layout } from "../ui/Layout";
+import LoadingSpinner from "../ui/LoadingSpinner";
+import Alert from "../ui/Alert";
 
 interface DashboardStats {
   totalUsers: number;
@@ -14,7 +14,7 @@ interface DashboardStats {
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const { user } = useAuth();
 
   useEffect(() => {
@@ -27,12 +27,12 @@ const DashboardPage: React.FC = () => {
           activeUsers: 42,
           newUsers: 8,
         };
-        
+
         // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         setStats(mockStats);
       } catch (err: any) {
-        setError('Failed to load dashboard data');
+        setError("Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
@@ -73,12 +73,16 @@ const DashboardPage: React.FC = () => {
                 </p>
               </div>
               <div className="mt-4 sm:mt-0">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  user?.isEmailVerified 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {user?.isEmailVerified ? '✓ Email Verified' : '⚠ Email Not Verified'}
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    user?.isEmailVerified
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {user?.isEmailVerified
+                    ? "✓ Email Verified"
+                    : "⚠ Email Not Verified"}
                 </span>
               </div>
             </div>

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { Link } from 'react-router-dom';
-import { forgotPasswordSchema } from '../../utils/validation';
-import { authAPI } from '../../services/api';
-import Button from '../ui/Button';
-import Alert from '../ui/Alert';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { Link } from "react-router-dom";
+import { forgotPasswordSchema } from "../../utils/validation";
+import { authAPI } from "../../services/api";
+import Button from "../ui/Button";
+import Alert from "../ui/Alert";
 
 interface ForgotPasswordForm {
   email: string;
@@ -13,8 +13,8 @@ interface ForgotPasswordForm {
 
 export const ForgotPasswordPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const [message, setMessage] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   const {
     register,
@@ -27,14 +27,18 @@ export const ForgotPasswordPage: React.FC = () => {
   const onSubmit = async (data: ForgotPasswordForm) => {
     try {
       setIsSubmitting(true);
-      setError('');
-      setMessage('');
+      setError("");
+      setMessage("");
 
       await authAPI.forgotPassword(data);
-      
-      setMessage('Password reset instructions have been sent to your email address.');
+
+      setMessage(
+        "Password reset instructions have been sent to your email address."
+      );
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to send reset instructions');
+      setError(
+        err.response?.data?.message || "Failed to send reset instructions"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -63,49 +67,57 @@ export const ForgotPasswordPage: React.FC = () => {
             Forgot your password?
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Enter your email address and we'll send you instructions to reset your password.
+            Enter your email address and we'll send you instructions to reset
+            your password.
           </p>
         </div>
 
         {/* Forgot Password Form Card */}
         <div className="bg-white shadow-xl rounded-2xl px-8 py-10 border border-gray-100">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            {error && (
-              <Alert
-                type="error"
-                message={error}
-              />
-            )}
-            {message && (
-              <Alert
-                type="success"
-                message={message}
-              />
-            )}
+            {error && <Alert type="error" message={error} />}
+            {message && <Alert type="success" message={message} />}
 
             <div className="space-y-5">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Email address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                      />
                     </svg>
                   </div>
                   <input
-                    {...register('email')}
+                    {...register("email")}
                     type="email"
                     autoComplete="email"
                     className={`block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors ${
-                      errors.email ? 'border-red-300 text-red-900' : 'border-gray-300'
+                      errors.email
+                        ? "border-red-300 text-red-900"
+                        : "border-gray-300"
                     }`}
                     placeholder="Enter your email"
                   />
                 </div>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -136,7 +148,7 @@ export const ForgotPasswordPage: React.FC = () => {
         {/* Sign up link */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <Link
               to="/register"
               className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors"

@@ -1,39 +1,41 @@
-import React from 'react';
-import type { ButtonProps } from '../../types';
+import React from "react";
+import type { ButtonProps } from "../../types";
 
 const Button: React.FC<ButtonProps> = ({
   children,
-  type = 'button',
-  variant = 'primary',
-  size = 'md',
+  type = "button",
+  variant = "primary",
+  size = "md",
   loading = false,
   disabled = false,
-  className = '',
+  className = "",
   onClick,
   ...props
 }) => {
-  const baseClasses = 'btn';
-  
+  const baseClasses = "btn";
+
   const variantClasses = {
-    primary: 'btn-primary',
-    secondary: 'btn-secondary',
-    outline: 'btn-outline',
-    danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
+    primary: "btn-primary",
+    secondary: "btn-secondary",
+    outline: "btn-outline",
+    danger: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800",
   };
 
   const sizeClasses = {
-    sm: 'btn-sm',
-    md: 'btn-md',
-    lg: 'btn-lg',
+    sm: "btn-sm",
+    md: "btn-md",
+    lg: "btn-lg",
   };
 
   const classes = [
     baseClasses,
     variantClasses[variant],
     sizeClasses[size],
-    disabled || loading ? 'opacity-50 cursor-not-allowed' : '',
+    disabled || loading ? "opacity-50 cursor-not-allowed" : "",
     className,
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <button
