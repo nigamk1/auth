@@ -76,6 +76,38 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Root route - API documentation
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Authentication API Server',
+    version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    endpoints: {
+      health: '/health or /api/health',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        logout: 'POST /api/auth/logout',
+        refresh: 'POST /api/auth/refresh',
+        forgotPassword: 'POST /api/auth/forgot-password',
+        resetPassword: 'POST /api/auth/reset-password'
+      },
+      user: {
+        profile: 'GET /api/user/profile',
+        updateProfile: 'PUT /api/user/profile',
+        changePassword: 'PUT /api/user/change-password'
+      },
+      protected: {
+        dashboard: 'GET /api/protected/dashboard'
+      }
+    },
+    documentation: 'Visit the frontend application for full documentation'
+  });
+});
+
 // Health check endpoints
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -100,11 +132,19 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/protected', protectedRoutes);
 
-// 404 handler
+// 404 handler for unknown routes
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    message: `Route ${req.originalUrl} not found`
+    message: `Route ${req.originalUrl} not found`,
+    availableEndpoints: {
+      root: 'GET /',
+      health: 'GET /health or GET /api/health',
+      auth: 'POST /api/auth/register, POST /api/auth/login, etc.',
+      user: 'GET /api/user/profile, PUT /api/user/profile, etc.',
+      protected: 'GET /api/protected/dashboard'
+    },
+    tip: 'Visit the root URL (/) for complete API documentation'
   });
 });
 
