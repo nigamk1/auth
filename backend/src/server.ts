@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDB } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -92,13 +93,38 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/protected', protectedRoutes);
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `Route ${req.originalUrl} not found`
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from frontend build
+  const frontendPath = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(frontendPath));
+  
+  // Handle React Router - send all non-API requests to index.html
+  app.get('*', (req, res) => {
+    // Don't serve index.html for API routes
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({
+        success: false,
+        message: `API route ${req.originalUrl} not found`
+      });
+    }
+    return res.sendFile(path.join(frontendPath, 'index.html'));
   });
-});
+} else {
+  // Development 404 handler for non-API routes
+  app.use('*', (req, res) => {
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({
+        success: false,
+        message: `API route ${req.originalUrl} not found`
+      });
+    }
+    return res.status(404).json({
+      success: false,
+      message: `Route ${req.originalUrl} not found - Frontend should be running separately in development`
+    });
+  });
+}
 
 // Global error handler
 app.use(errorHandler);
