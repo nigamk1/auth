@@ -76,46 +76,215 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Root route - API documentation
+// Root route - API documentation (browser-friendly)
 app.get('/', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Authentication API Server',
-    version: '1.0.0',
-    status: 'running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    endpoints: {
-      health: '/health or /api/health',
-      auth: {
-        register: 'POST /api/auth/register',
-        login: 'POST /api/auth/login',
-        logout: 'POST /api/auth/logout',
-        refresh: 'POST /api/auth/refresh',
-        forgotPassword: 'POST /api/auth/forgot-password',
-        resetPassword: 'POST /api/auth/reset-password'
+  // Check if request is from a browser
+  const userAgent = req.get('User-Agent') || '';
+  const isBrowser = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari') || userAgent.includes('Edge');
+  
+  if (isBrowser && !req.get('Accept')?.includes('application/json')) {
+    // Return HTML for browsers
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Authentication API Server</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+          }
+          .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+          }
+          h1 { color: #4a5568; margin-bottom: 0; }
+          h2 { color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
+          .status { 
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            margin-left: 1rem;
+          }
+          .endpoint {
+            background: #f7fafc;
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid #4299e1;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+          }
+          .method-post { border-left-color: #f56565; }
+          .method-get { border-left-color: #48bb78; }
+          .method-put { border-left-color: #ed8936; }
+          .info { background: #ebf8ff; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
+          .footer { text-align: center; margin-top: 2rem; color: #718096; }
+          a { color: #4299e1; text-decoration: none; }
+          a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🔐 Authentication API Server <span class="status">LIVE</span></h1>
+          
+          <div class="info">
+            <strong>Environment:</strong> ${process.env.NODE_ENV || 'development'} | 
+            <strong>Version:</strong> 1.0.0 | 
+            <strong>Status:</strong> Running | 
+            <strong>Time:</strong> ${new Date().toISOString()}
+          </div>
+
+          <h2>📋 Available Endpoints</h2>
+          
+          <h3>🔍 Health Check</h3>
+          <div class="endpoint method-get">GET /health</div>
+          <div class="endpoint method-get">GET /api/health</div>
+          
+          <h3>🔑 Authentication</h3>
+          <div class="endpoint method-post">POST /api/auth/register</div>
+          <div class="endpoint method-post">POST /api/auth/login</div>
+          <div class="endpoint method-post">POST /api/auth/logout</div>
+          <div class="endpoint method-post">POST /api/auth/refresh</div>
+          <div class="endpoint method-post">POST /api/auth/forgot-password</div>
+          <div class="endpoint method-post">POST /api/auth/reset-password</div>
+          
+          <h3>👤 User Management</h3>
+          <div class="endpoint method-get">GET /api/user/profile</div>
+          <div class="endpoint method-put">PUT /api/user/profile</div>
+          <div class="endpoint method-put">PUT /api/user/change-password</div>
+          
+          <h3>🛡️ Protected Routes</h3>
+          <div class="endpoint method-get">GET /api/protected/dashboard</div>
+
+          <h2>🚀 Quick Links</h2>
+          <p>
+            • <a href="/health">Health Check</a><br>
+            • <a href="/api/health">API Health Check</a><br>
+            • Frontend Application: <a href="${process.env.FRONTEND_URL || '#'}" target="_blank">Visit App</a>
+          </p>
+
+          <div class="info">
+            <strong>🔗 API Base URL:</strong> <code>${req.protocol}://${req.get('host')}/api</code><br>
+            <strong>📚 Usage:</strong> All API requests should include <code>Content-Type: application/json</code> header
+          </div>
+
+          <div class="footer">
+            <p>Built with ❤️ using Node.js, Express, TypeScript & MongoDB</p>
+            <p>🔒 Secure Authentication System | Production Ready</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  } else {
+    // Return JSON for API clients
+    res.status(200).json({
+      success: true,
+      message: 'Authentication API Server',
+      version: '1.0.0',
+      status: 'running',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      endpoints: {
+        health: '/health or /api/health',
+        auth: {
+          register: 'POST /api/auth/register',
+          login: 'POST /api/auth/login',
+          logout: 'POST /api/auth/logout',
+          refresh: 'POST /api/auth/refresh',
+          forgotPassword: 'POST /api/auth/forgot-password',
+          resetPassword: 'POST /api/auth/reset-password'
+        },
+        user: {
+          profile: 'GET /api/user/profile',
+          updateProfile: 'PUT /api/user/profile',
+          changePassword: 'PUT /api/user/change-password'
+        },
+        protected: {
+          dashboard: 'GET /api/protected/dashboard'
+        }
       },
-      user: {
-        profile: 'GET /api/user/profile',
-        updateProfile: 'PUT /api/user/profile',
-        changePassword: 'PUT /api/user/change-password'
-      },
-      protected: {
-        dashboard: 'GET /api/protected/dashboard'
-      }
-    },
-    documentation: 'Visit the frontend application for full documentation'
-  });
+      documentation: 'Visit the frontend application for full documentation'
+    });
+  }
 });
 
-// Health check endpoints
+// Health check endpoints (browser-friendly)
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'Auth API is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
-  });
+  const userAgent = req.get('User-Agent') || '';
+  const isBrowser = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari') || userAgent.includes('Edge');
+  
+  if (isBrowser && !req.get('Accept')?.includes('application/json')) {
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>API Health Check</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+          }
+          .status { font-size: 4rem; margin-bottom: 1rem; }
+          h1 { color: #2d3748; margin-bottom: 1rem; }
+          .info { color: #4a5568; margin: 0.5rem 0; }
+          .timestamp { background: #f7fafc; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
+          a { color: #4299e1; text-decoration: none; }
+          a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="status">✅</div>
+          <h1>API Health Check</h1>
+          <div class="info"><strong>Status:</strong> All systems operational</div>
+          <div class="info"><strong>Environment:</strong> ${process.env.NODE_ENV || 'development'}</div>
+          <div class="timestamp">
+            <strong>Last Check:</strong><br>
+            ${new Date().toLocaleString()}
+          </div>
+          <p><a href="/">← Back to API Documentation</a></p>
+        </div>
+      </body>
+      </html>
+    `);
+  } else {
+    res.status(200).json({
+      status: 'OK',
+      message: 'Auth API is running',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV
+    });
+  }
 });
 
 app.get('/api/health', (req, res) => {
