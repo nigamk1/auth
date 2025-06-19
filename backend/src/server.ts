@@ -19,8 +19,35 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Set NODE_ENV to production if not set and running on port 10000 (Render's default)
+if (!process.env.NODE_ENV && PORT === '10000') {
+  process.env.NODE_ENV = 'production';
+}
+
+console.log('🔧 Configuration:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: PORT,
+  MONGODB_URI: process.env.MONGODB_URI ? '✅ Set' : '❌ Missing',
+  JWT_SECRET: process.env.JWT_SECRET ? '✅ Set' : '❌ Missing',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'Not set'
+});
+
 // Connect to database
 connectDB();
+
+// Validate required environment variables in production
+if (process.env.NODE_ENV === 'production') {
+  const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.error('❌ Missing required environment variables:', missingVars);
+    console.error('Please set these variables in your Render service settings');
+    process.exit(1);
+  }
+  
+  console.log('✅ All required environment variables are set');
+}
 
 // Security middleware
 app.use(helmet({
