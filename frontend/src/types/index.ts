@@ -45,8 +45,8 @@ export interface ChangePasswordRequest {
 }
 
 export interface UpdateProfileRequest {
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   bio?: string;
   dateOfBirth?: string;
   phoneNumber?: string;

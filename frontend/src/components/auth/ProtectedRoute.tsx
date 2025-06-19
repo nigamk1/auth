@@ -1,12 +1,12 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import LoadingSpinner from '../ui/LoadingSpinner';
-import type { ProtectedRouteProps } from '../../types';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import LoadingSpinner from "../ui/LoadingSpinner";
+import type { ProtectedRouteProps } from "../../types";
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requiredRole = 'user' 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRole = "user",
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
@@ -26,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Check role-based access
-  if (requiredRole === 'admin' && user.role !== 'admin') {
+  if (requiredRole === "admin" && user.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -45,7 +45,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               />
             </svg>
           </div>
-          <h2 className="mt-4 text-xl font-semibold text-gray-900">Access Denied</h2>
+          <h2 className="mt-4 text-xl font-semibold text-gray-900">
+            Access Denied
+          </h2>
           <p className="mt-2 text-gray-600">
             You don't have permission to access this page.
           </p>

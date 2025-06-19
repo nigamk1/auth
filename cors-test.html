@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>Testing CORS</h1>
+    <button onclick="testCors()">Test API Connection</button>
+    <div id="result"></div>
+
+    <script>
+        async function testCors() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Test health endpoint first
+                const healthResponse = await fetch('http://localhost:5000/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    resultDiv.innerHTML = `<p style="color: green;">✅ Health check successful: ${healthData.message}</p>`;
+                    
+                    // Test register endpoint
+                    const registerResponse = await fetch('http://localhost:5000/api/auth/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: 'test@example.com',
+                            password: 'password123',
+                            firstName: 'Test',
+                            lastName: 'User'
+                        })
+                    });
+                    
+                    const registerData = await registerResponse.json();
+                    resultDiv.innerHTML += `<p style="color: blue;">📝 Register endpoint response: ${JSON.stringify(registerData, null, 2)}</p>`;
+                    
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Health check failed: ${healthResponse.status}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ CORS Error: ${error.message}</p>`;
+                console.error('CORS Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

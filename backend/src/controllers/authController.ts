@@ -249,7 +249,6 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response): 
   // Generate password reset token
   const resetToken = user.generatePasswordResetToken();
   await user.save();
-
   try {
     // Send password reset email
     await sendPasswordResetEmail(user.email, resetToken, user.firstName);
@@ -258,13 +257,20 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response): 
       success: true,
       message: 'Password reset email sent successfully'
     } as ApiResponse);
-  } catch (error) {
+  } catch (error: any) {
     // Clear reset token if email fails
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
     await user.save();
 
-    throw new AppError('Failed to send password reset email. Please try again later.', 500);
+    // Provide more specific error messages for email configuration issues
+    if (error.message && error.message.includes('Email authentication failed')) {
+      throw new AppError('Email service configuration error. Please contact support.', 500);
+    } else if (error.code === 'EAUTH') {
+      throw new AppError('Email service authentication failed. Please contact support.', 500);
+    } else {
+      throw new AppError('Failed to send password reset email. Please try again later.', 500);
+    }
   }
 });
 

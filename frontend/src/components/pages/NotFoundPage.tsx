@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import Button from '../ui/Button';
+import React from "react";
+import { Link } from "react-router-dom";
+import Button from "../ui/Button";
 
 export const NotFoundPage: React.FC = () => {
   return (
@@ -31,14 +31,10 @@ export const NotFoundPage: React.FC = () => {
           </p>
           <div className="space-x-4">
             <Link to="/dashboard">
-              <Button variant="primary">
-                Go to Dashboard
-              </Button>
+              <Button variant="primary">Go to Dashboard</Button>
             </Link>
             <Link to="/login">
-              <Button variant="outline">
-                Go to Login
-              </Button>
+              <Button variant="outline">Go to Login</Button>
             </Link>
           </div>
         </div>
