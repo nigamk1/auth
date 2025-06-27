@@ -22,14 +22,25 @@ const RegisterPage: React.FC = () => {
     resolver: yupResolver(registerSchema),
   });
 
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsLoading(true);
       setError("");
+      setSuccessMessage("");
 
       const { confirmPassword, ...registerData } = data;
       await registerUser(registerData);
-      navigate("/dashboard");
+      
+      setSuccessMessage(
+        "Registration successful! A verification email has been sent to your email address. Please verify your email to access all features."
+      );
+      
+      // Navigate after a short delay to ensure user sees the message
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 2000);
     } catch (err: any) {
       setError(err.message || "Registration failed");
     } finally {
@@ -72,6 +83,14 @@ const RegisterPage: React.FC = () => {
                 type="error"
                 message={error}
                 onClose={() => setError("")}
+              />
+            )}
+            
+            {successMessage && (
+              <Alert
+                type="success"
+                message={successMessage}
+                onClose={() => setSuccessMessage("")}
               />
             )}
 

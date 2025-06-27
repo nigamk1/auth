@@ -132,6 +132,56 @@ const getPasswordResetEmailTemplate = (firstName: string, resetToken: string): s
   `;
 };
 
+// Email Verification Template
+const getEmailVerificationTemplate = (firstName: string, verificationToken: string): string => {
+  const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Verify Your Email</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #4c51bf; color: white; padding: 20px; text-align: center; }
+        .content { padding: 30px; background: #f9f9f9; }
+        .button { display: inline-block; padding: 12px 24px; background: #4c51bf; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Verify Your Email</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${firstName}!</h2>
+          <p>Thank you for creating an account with Auth System! To complete your registration, please verify your email address.</p>
+          <p>Click the button below to verify your email address:</p>
+          <p style="text-align: center;">
+            <a href="${verificationUrl}" class="button">Verify Email</a>
+          </p>
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; background: #f1f1f1; padding: 10px; border-radius: 5px;">${verificationUrl}</p>
+          <div class="warning">
+            <strong>Important:</strong> This link will expire in 24 hours.
+            If you did not create an account, please ignore this email.
+          </div>
+          <p>Best regards,<br>The Auth System Team</p>
+        </div>
+        <div class="footer">
+          <p>&copy; 2025 Auth System. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 // Send welcome email
 export const sendWelcomeEmail = async (email: string, firstName: string): Promise<void> => {
   try {
@@ -192,6 +242,40 @@ export const sendPasswordResetEmail = async (
     }
     
     logger.error(`Failed to send password reset email to ${email}:`, error);
+    throw error;
+  }
+};
+
+// Send email verification
+export const sendEmailVerification = async (
+  email: string, 
+  verificationToken: string, 
+  firstName: string
+): Promise<void> => {
+  try {
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      to: email,
+      subject: 'Verify Your Email - Auth System',
+      html: getEmailVerificationTemplate(firstName, verificationToken)
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    logger.info(`Verification email sent successfully to ${email}`, { messageId: result.messageId });
+  } catch (error: any) {
+    // Enhanced error logging for Gmail authentication issues
+    if (error.code === 'EAUTH') {
+      logger.error(`Gmail authentication failed for ${email}. Please check EMAIL_APP_PASSWORD configuration.`, {
+        code: error.code,
+        response: error.response,
+        command: error.command
+      });
+      throw new Error('Email authentication failed. Please check your Gmail App Password configuration.');
+    }
+    
+    logger.error(`Failed to send verification email to ${email}:`, error);
     throw error;
   }
 };

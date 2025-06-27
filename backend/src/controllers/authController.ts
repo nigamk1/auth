@@ -4,7 +4,7 @@ import { User } from '../models/User';
 import { JWTUtils } from '../utils/jwt';
 import { AppError, asyncHandler } from '../middleware/errorHandler';
 import { ApiResponse, AuthResponse, RegisterRequest, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest } from '../types';
-import { sendPasswordResetEmail, sendWelcomeEmail } from '../utils/email';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendEmailVerification } from '../utils/email';
 
 // Register new user
 export const register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -35,6 +35,10 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
 
   // Save refresh token to user
   user.refreshTokens.push(refreshToken);
+  
+  // Generate email verification token
+  const verificationToken = user.generateEmailVerificationToken();
+  
   await user.save();
 
   // Send welcome email (optional)
@@ -43,6 +47,13 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
   } catch (error) {
     // Don't fail registration if email fails
     console.log('Failed to send welcome email:', error);
+  }
+  
+  // Send verification email
+  try {
+    await sendEmailVerification(user.email, verificationToken, user.firstName);
+  } catch (error) {
+    console.log('Failed to send verification email:', error);
   }
 
   // Set refresh token in httpOnly cookie

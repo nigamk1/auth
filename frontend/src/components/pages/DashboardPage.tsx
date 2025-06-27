@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { Layout } from "../ui/Layout";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import Alert from "../ui/Alert";
+import EmailVerificationBanner from "../ui/EmailVerificationBanner";
 
 interface DashboardStats {
   totalUsers: number;
@@ -58,6 +59,9 @@ const DashboardPage: React.FC = () => {
           <Alert type="error" message={error} />
         </div>
       )}
+
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
 
       {/* Welcome Section */}
       <div className="px-4 py-6 sm:px-0">

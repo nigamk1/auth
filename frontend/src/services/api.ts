@@ -247,6 +247,24 @@ export const protectedAPI = {
   }
 };
 
+// Verification API
+export const verificationAPI = {
+  // Send verification email
+  sendVerificationEmail: async (): Promise<void> => {
+    await api.post<ApiResponse>('/verification/send-verification-email');
+  },
+
+  // Verify email
+  verifyEmail: async (token: string): Promise<void> => {
+    await api.get<ApiResponse>(`/verification/verify-email/${token}`);
+  },
+
+  // Resend verification email
+  resendVerification: async (): Promise<void> => {
+    await api.post<ApiResponse>('/verification/resend-verification');
+  }
+};
+
 // Health check
 export const healthAPI = {
   check: async (): Promise<any> => {

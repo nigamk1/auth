@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { IUser } from '../types';
+import { IUser, IUserModel } from '../types';
 
 const userSchema = new Schema<IUser>({
   email: {
@@ -201,4 +201,5 @@ userSchema.statics.findByEmailVerificationToken = function(token: string) {
   });
 };
 
-export const User = mongoose.model<IUser>('User', userSchema);
+// Export the User model with both IUser interface and IUserModel static methods
+export const User = mongoose.model<IUser, IUserModel>('User', userSchema);

@@ -8,7 +8,7 @@ interface LayoutProps {
   title?: string;
 }
 
-export const Layout: React.FC<LayoutProps> = ({
+const Layout: React.FC<LayoutProps> = ({
   children,
   title = "Dashboard",
 }) => {
@@ -81,3 +81,7 @@ export const Layout: React.FC<LayoutProps> = ({
     </div>
   );
 };
+
+// Export as both named and default export
+export { Layout };
+export default Layout;

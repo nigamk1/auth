@@ -1,3 +1,6 @@
+// Re-export all trading types
+export * from './trading';
+
 // User types
 export interface User {
   id: string;
@@ -85,6 +88,7 @@ export interface AuthContextType {
   updateProfile: (data: UpdateProfileRequest) => Promise<void>;
   changePassword: (data: ChangePasswordRequest) => Promise<void>;
   refreshToken: () => Promise<boolean>;
+  updateEmailVerificationStatus: () => Promise<void>;
 }
 
 // Form types

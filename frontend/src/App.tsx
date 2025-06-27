@@ -5,10 +5,12 @@ import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
+import EmailVerificationPage from './components/auth/EmailVerificationPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import DashboardPage from './components/pages/DashboardPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { NotFoundPage } from './components/pages/NotFoundPage';
+import TradingDashboardPage from './components/pages/TradingDashboardPage';
 import './index.css';
 
 function App() {
@@ -22,6 +24,7 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<EmailVerificationPage />} />
               <Route
                 path="/dashboard"
                 element={
@@ -35,6 +38,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trading"
+                element={
+                  <ProtectedRoute>
+                    <TradingDashboardPage />
                   </ProtectedRoute>
                 }
               />

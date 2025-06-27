@@ -120,6 +120,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       dispatch({ type: 'AUTH_START' });
       const authResponse = await authAPI.register(credentials);
       dispatch({ type: 'AUTH_SUCCESS', payload: authResponse.user });
+      
+      // The backend now automatically sends verification email on registration,
+      // so we just inform the user that they should check their email
+      return;
     } catch (error: any) {
       dispatch({ type: 'AUTH_FAILURE' });
       throw new Error(error.response?.data?.message || 'Registration failed');
@@ -187,6 +191,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Update email verification status
+  const updateEmailVerificationStatus = async (): Promise<void> => {
+    try {
+      const updatedUser = await authAPI.getProfile();
+      dispatch({ type: 'UPDATE_USER', payload: updatedUser });
+    } catch (error: any) {
+      console.error('Failed to update profile:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user: state.user,
     isAuthenticated: state.isAuthenticated,
@@ -199,6 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateProfile,
     changePassword,
     refreshToken,
+    updateEmailVerificationStatus,
   };
 
   return (

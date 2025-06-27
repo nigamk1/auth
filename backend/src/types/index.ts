@@ -1,4 +1,4 @@
-import { Document } from 'mongoose';
+import { Document, Model } from 'mongoose';
 
 // User interfaces
 export interface IUser extends Document {
@@ -35,6 +35,12 @@ export interface IUser extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
   generatePasswordResetToken(): string;
   generateEmailVerificationToken(): string;
+}
+
+// User model interface with static methods
+export interface IUserModel extends Model<IUser> {
+  findByPasswordResetToken(token: string): Promise<IUser | null>;
+  findByEmailVerificationToken(token: string): Promise<IUser | null>;
 }
 
 // Auth request interfaces

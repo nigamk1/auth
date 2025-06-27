@@ -18,6 +18,14 @@ A comprehensive, production-ready authentication system built with modern web te
 - **Email Verification**: Secure email verification system
 - **Password Management**: Change password with current password verification
 - **Account Settings**: Comprehensive user preferences
+
+### 📈 Trading Alert System
+- **Real-time Market Data**: Integration with market data APIs
+- **Trading Signals**: Algorithm-based trading signal generation
+- **Strategy Management**: Customizable trading strategies
+- **Alert Configuration**: Personalized alert settings via email, Telegram, and WhatsApp
+- **Performance Metrics**: Track and analyze strategy performance
+- **Dashboard**: Real-time visualization of market data and signals
 - **Role-based Access**: Support for user roles (user, admin)
 
 ### 🎨 Frontend Features
@@ -187,9 +195,30 @@ npm run lint       # Run ESLint
 POST   /api/auth/register      # User registration
 POST   /api/auth/login         # User login
 POST   /api/auth/logout        # User logout
-POST   /api/auth/refresh       # Refresh access token
+POST   /api/auth/refresh-token # Refresh access token
 POST   /api/auth/forgot-password  # Request password reset
 POST   /api/auth/reset-password   # Reset password with token
+GET    /api/auth/profile       # Get user profile
+
+### User Management
+```
+PUT    /api/user/profile       # Update user profile
+PUT    /api/user/change-password  # Change user password
+DELETE /api/user/account       # Delete user account
+GET    /api/user/stats         # Get user statistics
+
+### Trading System
+```
+GET    /api/trading/signals    # Get trading signals with filtering
+GET    /api/trading/signals/:id # Get specific signal details
+GET    /api/trading/nifty      # Get Nifty index data
+GET    /api/trading/options    # Get option chain data
+GET    /api/trading/alerts/config # Get alert configuration
+PUT    /api/trading/alerts/config # Update alert configuration
+GET    /api/trading/strategies # Get available strategies
+PUT    /api/trading/strategies/:name # Update strategy settings
+GET    /api/trading/performance # Get performance metrics
+GET    /api/trading/dashboard  # Get trading dashboard summary
 ```
 
 ### User Management
