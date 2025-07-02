@@ -1,6 +1,37 @@
 # 🔐 Modern Authentication System
 
-A comprehensive, production-ready authentication system built with modern web technologies. This starter kit provides a complete foundation for building secure web applications with user management, authentication flows, and dashboard functionality.
+A comprehensive, production-ready authentication system built with modern web technologies. This starter kit provides# Application
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173
+
+# OpenAI Configuration (Required for AI Tutor)
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_MODEL=gpt-4-turbo-preview
+
+# Optional AI Services
+ELEVENLABS_API_KEY=your-elevenlabs-key  # For text-to-speech
+DID_API_KEY=your-did-api-key            # For video generation
+```
+
+**Frontend (.env):**
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+### 3. OpenAI API Setup (Required)
+
+The AI tutor requires an OpenAI API key:
+
+1. Get your API key from [OpenAI](https://platform.openai.com/api-keys)
+2. Replace `your-openai-api-key-here` in `backend/.env`
+3. Test the setup:
+   ```bash
+   cd backend
+   npm run test:openai
+   ```
+
+**Note**: See `OPENAI_SETUP.md` for detailed troubleshooting guide.e foundation for building secure web applications with user management, authentication flows, and dashboard functionality.
 
 ## ✨ Features
 
@@ -37,6 +68,20 @@ A comprehensive, production-ready authentication system built with modern web te
 - **Environment Config**: Secure environment variable management
 - **Error Logging**: Structured logging for debugging and monitoring
 
+### 🧠 AI Tutor Platform
+- **Multi-Modal Input**: Support for text, voice, and image questions
+- **OpenAI Integration**: Powered by GPT-4 for high-quality explanations
+- **Text-to-Speech**: AI-generated video explanations with voice narration
+- **Subject Specialization**: Adaptive responses based on academic subjects
+- **Difficulty Levels**: Tailored explanations for different learning levels
+- **Multi-Language Support**: International accessibility
+- **Question History**: Track and revisit previous questions
+- **Video Library**: Save and organize video explanations
+- **Real-time Processing**: Instant AI responses via WebSocket
+- **Freemium Model**: Subscription-based access with usage limits
+- **Content Sharing**: Download and share explanations
+- **Analytics Dashboard**: Track learning progress and usage
+
 ## 🛠 Tech Stack
 
 ### Backend
@@ -48,6 +93,10 @@ A comprehensive, production-ready authentication system built with modern web te
 - **Validation**: express-validator
 - **Email**: Nodemailer with multiple provider support
 - **Security**: Helmet.js, cors, rate limiting
+- **AI Services**: OpenAI GPT-4, ElevenLabs TTS, D-ID Video Generation
+- **Real-time**: Socket.IO for live interactions
+- **File Upload**: Multer with AWS S3 integration
+- **Payment**: Stripe for subscription management
 - **Development**: nodemon for hot reload
 
 ### Frontend
@@ -145,7 +194,7 @@ CLIENT_URL=http://localhost:5173
 VITE_API_URL=http://localhost:5000
 ```
 
-### 3. Start Development Servers
+### 4. Start Development Servers
 
 ```bash
 # Terminal 1 - Backend
@@ -157,19 +206,22 @@ cd frontend
 npm run dev
 ```
 
-### 4. Access the Application
+### 5. Access the Application
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:5000
+- **AI Tutor**: Navigate to `/tutor` in the frontend
 
 ## 📋 Available Scripts
 
 ### Backend
 ```bash
-npm run dev        # Start development server with hot reload
-npm run build      # Build TypeScript to JavaScript
-npm start          # Start production server
-npm run lint       # Run ESLint
+npm run dev          # Start development server with hot reload
+npm run build        # Build TypeScript to JavaScript
+npm start            # Start production server
+npm run test:openai  # Test OpenAI API connection
+npm run test:email   # Test email configuration
+npm run lint         # Run ESLint
 ```
 
 ### Frontend

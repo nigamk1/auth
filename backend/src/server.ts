@@ -12,6 +12,8 @@ import { logger } from './utils/logger';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import protectedRoutes from './routes/protected';
+import tutorRoutes from './routes/tutor';
+// import subscriptionRoutes from './routes/subscription'; // Temporarily disabled due to missing Subscription model
 
 // Load environment variables
 dotenv.config();
@@ -91,6 +93,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/protected', protectedRoutes);
+app.use('/api/tutor', tutorRoutes);
+// app.use('/api/subscription', subscriptionRoutes); // Temporarily disabled due to missing Subscription model
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -98,6 +98,100 @@ const userSchema = new Schema<IUser>({
   },
   lastLoginAt: {
     type: Date
+  },
+  
+  // Tutor Platform specific fields
+  preferences: {
+    language: {
+      type: String,
+      default: 'en'
+    },
+    subjects: [{
+      type: String
+    }],
+    difficultyLevel: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced'],
+      default: 'intermediate'
+    },
+    voiceSettings: {
+      provider: {
+        type: String,
+        enum: ['google', 'elevenlabs', 'azure'],
+        default: 'google'
+      },
+      voiceId: {
+        type: String,
+        default: 'en-US-Wavenet-A'
+      },
+      speed: {
+        type: Number,
+        min: 0.5,
+        max: 2.0,
+        default: 1.0
+      },
+      pitch: {
+        type: Number,
+        min: -20,
+        max: 20,
+        default: 0
+      }
+    },
+    videoSettings: {
+      quality: {
+        type: String,
+        enum: ['720p', '1080p'],
+        default: '720p'
+      },
+      animationStyle: {
+        type: String,
+        enum: ['minimal', 'detailed', 'interactive'],
+        default: 'detailed'
+      }
+    }
+  },
+  statistics: {
+    totalQuestions: {
+      type: Number,
+      default: 0
+    },
+    totalVideos: {
+      type: Number,
+      default: 0
+    },
+    averageRating: {
+      type: Number,
+      min: 0,
+      max: 5
+    },
+    totalStudyTime: {
+      type: Number,
+      default: 0
+    },
+    streakDays: {
+      type: Number,
+      default: 0
+    },
+    lastActivity: {
+      type: Date,
+      default: Date.now
+    },
+    subjectProgress: [{
+      subject: String,
+      questionsAnswered: {
+        type: Number,
+        default: 0
+      },
+      videosWatched: {
+        type: Number,
+        default: 0
+      },
+      averageRating: {
+        type: Number,
+        min: 0,
+        max: 5
+      }
+    }]
   }
 }, {
   timestamps: true,

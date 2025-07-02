@@ -7,6 +7,9 @@ import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import DashboardPage from './components/pages/DashboardPage';
+import TutorInterface from './components/tutor/TutorInterface';
+import VideoLibraryPage from './components/pages/VideoLibraryPage';
+import SubscriptionPage from './components/pages/SubscriptionPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { NotFoundPage } from './components/pages/NotFoundPage';
 import './index.css';
@@ -31,6 +34,30 @@ function App() {
                 }
               />
               <Route
+                path="/tutor"
+                element={
+                  <ProtectedRoute>
+                    <TutorInterface />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/video-library"
+                element={
+                  <ProtectedRoute>
+                    <VideoLibraryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/subscription"
+                element={
+                  <ProtectedRoute>
+                    <SubscriptionPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/settings"
                 element={
                   <ProtectedRoute>
@@ -38,7 +65,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/tutor" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>

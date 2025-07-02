@@ -143,3 +143,6 @@ export const validateRefreshToken = async (
     } as ApiResponse);
   }
 };
+
+// Export auth as alias for authenticate
+export const auth = authenticate;

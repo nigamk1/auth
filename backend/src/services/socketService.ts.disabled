@@ -1,0 +1,263 @@
+import { Server as SocketServer } from 'socket.io';
+import { Server as HttpServer } from 'http';
+import jwt from 'jsonwebtoken';
+import { User } from '../models/User';
+import { Question } from '../models/Question';
+import { Answer } from '../models/Answer';
+import { logger } from '../utils/logger';
+
+interface SocketUser {
+  id: string;
+  email: string;
+  socketId: string;
+}
+
+interface AuthenticatedSocket extends Socket {
+  user?: {
+    id: string;
+    email: string;
+  };
+}
+
+class SocketService {
+  private io: SocketServer;
+  private connectedUsers: Map<string, SocketUser> = new Map();
+
+  constructor(server: HttpServer) {
+    this.io = new SocketServer(server, {
+      cors: {
+        origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+          'http://localhost:3000',
+          'http://localhost:5173'
+        ],
+        credentials: true
+      }
+    });
+
+    this.initialize();
+  }
+
+  private initialize() {
+    // Authentication middleware
+    this.io.use(async (socket: any, next) => {
+      try {
+        const token = socket.handshake.auth.token;
+        
+        if (!token) {
+          return next(new Error('Authentication error: No token provided'));
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        const user = await User.findById(decoded.userId);
+        
+        if (!user) {
+          return next(new Error('Authentication error: User not found'));
+        }
+
+        socket.user = {
+          id: user._id.toString(),
+          email: user.email
+        };
+
+        next();
+      } catch (error) {
+        logger.error('Socket authentication error:', error);
+        next(new Error('Authentication error'));
+      }
+    });
+
+    // Connection handling
+    this.io.on('connection', (socket: AuthenticatedSocket) => {
+      this.handleConnection(socket);
+    });
+
+    logger.info('Socket.IO service initialized');
+  }
+
+  private handleConnection(socket: AuthenticatedSocket) {
+    const user = socket.user!;
+    
+    // Store connected user
+    this.connectedUsers.set(user.id, {
+      id: user.id,
+      email: user.email,
+      socketId: socket.id
+    });
+
+    logger.info(`User ${user.email} connected via Socket.IO`);
+
+    // Join user to their personal room
+    socket.join(`user:${user.id}`);
+
+    // Handle question submission
+    socket.on('question:submit', async (data) => {
+      try {
+        await this.handleQuestionSubmit(socket, data);
+      } catch (error) {
+        logger.error('Error handling question submit:', error);
+        socket.emit('error', { message: 'Failed to submit question' });
+      }
+    });
+
+    // Handle answer generation request
+    socket.on('answer:generate', async (data) => {
+      try {
+        await this.handleAnswerGenerate(socket, data);
+      } catch (error) {
+        logger.error('Error handling answer generate:', error);
+        socket.emit('error', { message: 'Failed to generate answer' });
+      }
+    });
+
+    // Handle typing indicator
+    socket.on('typing:start', (data) => {
+      socket.to(`conversation:${data.conversationId}`).emit('typing:user', {
+        userId: user.id,
+        email: user.email
+      });
+    });
+
+    socket.on('typing:stop', (data) => {
+      socket.to(`conversation:${data.conversationId}`).emit('typing:stop', {
+        userId: user.id
+      });
+    });
+
+    // Handle joining conversation rooms
+    socket.on('conversation:join', (conversationId) => {
+      socket.join(`conversation:${conversationId}`);
+    });
+
+    socket.on('conversation:leave', (conversationId) => {
+      socket.leave(`conversation:${conversationId}`);
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', () => {
+      this.connectedUsers.delete(user.id);
+      logger.info(`User ${user.email} disconnected from Socket.IO`);
+    });
+  }
+
+  private async handleQuestionSubmit(socket: AuthenticatedSocket, data: any) {
+    const user = socket.user!;
+    
+    // Validate question data
+    if (!data.content || !data.type) {
+      socket.emit('error', { message: 'Invalid question data' });
+      return;
+    }
+
+    // Emit immediate acknowledgment
+    socket.emit('question:acknowledged', {
+      tempId: data.tempId,
+      message: 'Question received and processing started'
+    });
+
+    // Process question will be handled by the controller
+    // Here we just notify about the status changes
+  }
+
+  private async handleAnswerGenerate(socket: AuthenticatedSocket, data: any) {
+    const user = socket.user!;
+    
+    if (!data.questionId || !data.type) {
+      socket.emit('error', { message: 'Invalid answer request data' });
+      return;
+    }
+
+    // Verify question ownership
+    const question = await Question.findOne({ _id: data.questionId, userId: user.id });
+    if (!question) {
+      socket.emit('error', { message: 'Question not found' });
+      return;
+    }
+
+    // Emit processing started
+    socket.emit('answer:processing', {
+      questionId: data.questionId,
+      type: data.type,
+      estimatedTime: data.type === 'video' ? 120 : 30
+    });
+  }
+
+  // Public methods to emit events from controllers
+
+  public notifyQuestionStatus(userId: string, questionId: string, status: string, data?: any) {
+    this.io.to(`user:${userId}`).emit('question:status', {
+      questionId,
+      status,
+      ...data
+    });
+  }
+
+  public notifyAnswerProgress(userId: string, answerId: string, progress: number, status?: string) {
+    this.io.to(`user:${userId}`).emit('answer:progress', {
+      answerId,
+      progress,
+      status
+    });
+  }
+
+  public notifyAnswerComplete(userId: string, answerId: string, answer: any) {
+    this.io.to(`user:${userId}`).emit('answer:complete', {
+      answerId,
+      answer
+    });
+  }
+
+  public notifyError(userId: string, error: string, context?: any) {
+    this.io.to(`user:${userId}`).emit('error', {
+      message: error,
+      context
+    });
+  }
+
+  public notifyNewMessage(conversationId: string, message: any) {
+    this.io.to(`conversation:${conversationId}`).emit('message:new', message);
+  }
+
+  public notifyUsageUpdate(userId: string, usage: any) {
+    this.io.to(`user:${userId}`).emit('usage:update', usage);
+  }
+
+  public broadcast(event: string, data: any) {
+    this.io.emit(event, data);
+  }
+
+  public getConnectedUsers(): SocketUser[] {
+    return Array.from(this.connectedUsers.values());
+  }
+
+  public isUserConnected(userId: string): boolean {
+    return this.connectedUsers.has(userId);
+  }
+
+  public getUserSocket(userId: string): string | null {
+    const user = this.connectedUsers.get(userId);
+    return user ? user.socketId : null;
+  }
+
+  public getStats() {
+    return {
+      connectedUsers: this.connectedUsers.size,
+      totalConnections: this.io.engine.clientsCount
+    };
+  }
+}
+
+let socketService: SocketService;
+
+export const initializeSocket = (server: HttpServer) => {
+  socketService = new SocketService(server);
+  return socketService;
+};
+
+export const getSocketService = (): SocketService => {
+  if (!socketService) {
+    throw new Error('Socket service not initialized');
+  }
+  return socketService;
+};
+
+export { SocketService };
