@@ -44,8 +44,8 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Layout title="AI Teacher Platform">
+      {/* Welcome Section */}
       <div className="px-4 py-6 sm:px-0">
-        {/* Welcome Section */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 overflow-hidden shadow rounded-lg mb-8">
           <div className="px-6 py-8 sm:p-10">
             <div className="sm:flex sm:items-center sm:justify-between">
@@ -104,7 +104,7 @@ const DashboardPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Getting Started Section */}
+        {/* Recent Activity Section */}
         <div className="mt-8 bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-medium text-gray-900">Getting Started</h2>

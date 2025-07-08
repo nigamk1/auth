@@ -131,3 +131,126 @@ export interface GitHubProfile {
   name?: { givenName: string; familyName: string };
   photos?: Array<{ value: string }>;
 }
+
+// AI Teacher Platform Types
+export interface VoiceToTextRequest {
+  audioFile: Buffer;
+  language?: string;
+  format?: string;
+}
+
+export interface TextToVoiceRequest {
+  text: string;
+  language?: string;
+  voice?: string;
+  emotion?: string;
+}
+
+export interface AITeacherRequest {
+  message: string;
+  context: {
+    subject: string;
+    language: string;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    sessionHistory?: string[];
+  };
+  whiteboardState?: any[];
+}
+
+export interface AITeacherResponse {
+  spokenText: string;
+  audioUrl?: string;
+  whiteboardCommands?: WhiteboardCommand[];
+  emotion: string;
+  confidence: number;
+  metadata: {
+    tokens: {
+      input: number;
+      output: number;
+    };
+    processingTime: number;
+  };
+}
+
+export interface WhiteboardCommand {
+  type: 'draw' | 'text' | 'shape' | 'equation' | 'diagram' | 'clear' | 'highlight';
+  action: 'add' | 'update' | 'delete' | 'move';
+  element: {
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    properties: any;
+    content?: string;
+  };
+}
+
+export interface SessionRequest {
+  title: string;
+  subject: string;
+  language: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface SessionResponse {
+  id: string;
+  title: string;
+  subject: string;
+  language: string;
+  status: string;
+  startTime: Date;
+  duration: number;
+  metadata: any;
+}
+
+export interface MessageRequest {
+  sessionId: string;
+  type: 'user_audio' | 'user_text';
+  content: {
+    text?: string;
+    audioFile?: Buffer;
+  };
+}
+
+export interface RealtimeMessage {
+  type: 'ai_response' | 'whiteboard_update' | 'session_update' | 'error';
+  data: any;
+  timestamp: Date;
+}
+
+// WebSocket Types
+export interface SocketUser {
+  userId: string;
+  sessionId?: string;
+  socketId: string;
+}
+
+export interface VoiceProcessingOptions {
+  language: string;
+  enhanceAudio: boolean;
+  removeSilence: boolean;
+  normalizeVolume: boolean;
+}
+
+export interface TTSOptions {
+  voice: 'male' | 'female';
+  speed: number;
+  pitch: number;
+  emotion: 'neutral' | 'encouraging' | 'empathetic' | 'enthusiastic' | 'patient';
+}
+
+// Learning Analytics
+export interface LearningProgress {
+  userId: string;
+  subject: string;
+  totalSessions: number;
+  totalTime: number; // in minutes
+  averageSessionDuration: number;
+  topics: {
+    name: string;
+    sessionsCount: number;
+    masteryLevel: number; // 0-100
+  }[];
+  weakAreas: string[];
+  strongAreas: string[];
+  lastActivity: Date;
+}

@@ -4,14 +4,19 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
 import { connectDB } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
+import { websocketService } from './services/websocket';
 
 // Routes
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import protectedRoutes from './routes/protected';
+import sessionRoutes from './routes/sessions';
+import aiRoutes from './routes/ai';
+import whiteboardRoutes from './routes/whiteboard';
 
 // Load environment variables
 dotenv.config();
@@ -19,8 +24,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Create HTTP server for WebSocket support
+const httpServer = createServer(app);
+
 // Connect to database
 connectDB();
+
+// Initialize WebSocket service
+websocketService.initialize(httpServer);
 
 // Security middleware
 app.use(helmet({
@@ -52,8 +63,10 @@ const corsOptions = {
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
       'http://localhost:5173',
+      'http://localhost:5174', // Add the port your frontend is running on
       'http://127.0.0.1:3000',
-      'http://127.0.0.1:5173'
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
@@ -63,8 +76,8 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-refresh-token'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-refresh-token', 'X-Requested-With'],
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 app.use(cors(corsOptions));
@@ -81,9 +94,15 @@ app.use(cookieParser());
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
-    message: 'Auth API is running',
+    message: 'AI Teacher API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    features: {
+      ai: !!process.env.OPENAI_API_KEY,
+      websockets: true,
+      voiceProcessing: true,
+      whiteboard: true
+    }
   });
 });
 
@@ -91,6 +110,9 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/protected', protectedRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/whiteboard', whiteboardRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -105,9 +127,11 @@ app.use(errorHandler);
 
 // Start server (only in development)
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  httpServer.listen(PORT, () => {
+    logger.info(`🚀 AI Teacher Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
     logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+    logger.info(`🎯 WebSocket connections: ${websocketService.getUserSessionCount()}`);
+    logger.info('🤖 AI Teacher Platform Ready!');
   });
 }
 

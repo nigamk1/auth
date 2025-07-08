@@ -21,7 +21,7 @@ export class JWTUtils {
   // Generate access token
   static generateAccessToken(payload: JWTPayload): string {
     const options: SignOptions = {
-        expiresIn: '15m',
+      expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '2h') as any,
       issuer: 'auth-system',
       audience: 'auth-system-users'
     };
@@ -32,7 +32,7 @@ export class JWTUtils {
   // Generate refresh token
   static generateRefreshToken(payload: JWTPayload): string {
     const options: SignOptions = {
-        expiresIn: '7d',
+      expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any,
       issuer: 'auth-system',
       audience: 'auth-system-users'
     };

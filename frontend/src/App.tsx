@@ -7,6 +7,8 @@ import { ForgotPasswordPage } from './components/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import DashboardPage from './components/pages/DashboardPage';
+import AITeacherDashboard from './components/pages/AITeacherDashboard';
+import Classroom from './components/pages/Classroom';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { NotFoundPage } from './components/pages/NotFoundPage';
 import './index.css';
@@ -27,6 +29,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ai-teacher"
+                element={
+                  <ProtectedRoute>
+                    <AITeacherDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/classroom/:sessionId"
+                element={
+                  <ProtectedRoute>
+                    <Classroom />
                   </ProtectedRoute>
                 }
               />

@@ -11,7 +11,14 @@ import type {
   UpdateProfileRequest,
   User,
   DashboardData,
-  UserStats
+  UserStats,
+  // AI and Session types
+  Session,
+  Message,
+  WhiteboardCommand,
+  WhiteboardState,
+  SessionAnalytics,
+  CreateSessionFormData
 } from '../types';
 
 // Create axios instance
@@ -26,19 +33,25 @@ const api: AxiosInstance = axios.create({
 // Token storage utilities
 export const tokenStorage = {
   getAccessToken: (): string | null => {
-    return localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken');
+    console.log('📖 Getting access token:', token ? 'Found' : 'Not found');
+    return token;
   },
   
   getRefreshToken: (): string | null => {
-    return localStorage.getItem('refreshToken');
+    const token = localStorage.getItem('refreshToken');
+    console.log('📖 Getting refresh token:', token ? 'Found' : 'Not found');
+    return token;
   },
   
   setTokens: (accessToken: string, refreshToken: string): void => {
+    console.log('💾 Storing tokens in localStorage');
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
   },
   
   clearTokens: (): void => {
+    console.log('🗑️ Clearing tokens from localStorage');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
@@ -110,10 +123,12 @@ api.interceptors.response.use(
       }
 
       try {
+        console.log('🔄 Attempting to refresh token...');
         const response = await axios.post(`${api.defaults.baseURL}/auth/refresh-token`, {
           refreshToken
         });
 
+        console.log('✅ Token refresh successful');
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
         tokenStorage.setTokens(accessToken, newRefreshToken);
         
@@ -123,7 +138,8 @@ api.interceptors.response.use(
         
         processQueue(null, accessToken);
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
+        console.error('❌ Token refresh failed:', refreshError.response?.data || refreshError.message);
         processQueue(refreshError, null);
         tokenStorage.clearTokens();
         window.location.href = '/login';
@@ -243,6 +259,87 @@ export const protectedAPI = {
   // Get user settings
   getSettings: async (): Promise<any> => {
     const response = await api.get<ApiResponse>('/protected/settings');
+    return response.data.data!;
+  }
+};
+
+// AI and Session API
+export const aiAPI = {
+  // Create a new session
+  createSession: async (data: CreateSessionFormData): Promise<Session> => {
+    const response = await api.post<ApiResponse<Session>>('/sessions', data);
+    return response.data.data!;
+  },
+
+  // Get session by ID
+  getSession: async (sessionId: string): Promise<Session> => {
+    const response = await api.get<ApiResponse<Session>>(`/sessions/${sessionId}`);
+    return response.data.data!;
+  },
+
+  // Get all sessions
+  getSessions: async (): Promise<Session[]> => {
+    const response = await api.get<ApiResponse<Session[]>>('/sessions');
+    return response.data.data!;
+  },
+
+  // Send a text message to the session
+  sendMessage: async (sessionId: string, message: string): Promise<Message> => {
+    const response = await api.post<ApiResponse<Message>>(`/ai/message`, { sessionId, message });
+    return response.data.data!;
+  },
+
+  // Upload a voice file
+  uploadVoice: async (sessionId: string, file: File): Promise<{ message: Message; audioUrl?: string }> => {
+    const formData = new FormData();
+    formData.append('audio', file);
+    formData.append('sessionId', sessionId);
+
+    const response = await api.post<ApiResponse<{ message: Message; audioUrl?: string }>>(`/ai/voice`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data!;
+  },
+
+  // Send whiteboard command
+  sendWhiteboardCommand: async (sessionId: string, command: WhiteboardCommand): Promise<void> => {
+    await api.post<ApiResponse>(`/whiteboard/${sessionId}/command`, command);
+  },
+
+  // Get whiteboard state
+  getWhiteboardState: async (sessionId: string): Promise<WhiteboardState> => {
+    const response = await api.get<ApiResponse<WhiteboardState>>(`/whiteboard/${sessionId}/state`);
+    return response.data.data!;
+  },
+
+  // Update whiteboard state
+  updateWhiteboardState: async (sessionId: string, state: WhiteboardState): Promise<void> => {
+    await api.put<ApiResponse>(`/whiteboard/${sessionId}/state`, state);
+  },
+
+  // Get session analytics
+  getSessionAnalytics: async (sessionId: string): Promise<SessionAnalytics> => {
+    const response = await api.get<ApiResponse<SessionAnalytics>>(`/sessions/${sessionId}/analytics`);
+    return response.data.data!;
+  },
+
+  // End session
+  endSession: async (sessionId: string): Promise<Session> => {
+    const response = await api.post<ApiResponse<Session>>(`/sessions/${sessionId}/end`);
+    return response.data.data!;
+  },
+
+  // Pause session
+  pauseSession: async (sessionId: string): Promise<Session> => {
+    const response = await api.post<ApiResponse<Session>>(`/sessions/${sessionId}/pause`);
+    return response.data.data!;
+  },
+
+  // Resume session
+  resumeSession: async (sessionId: string): Promise<Session> => {
+    const response = await api.post<ApiResponse<Session>>(`/sessions/${sessionId}/resume`);
     return response.data.data!;
   }
 };

@@ -81,19 +81,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check if user is authenticated on app load
   useEffect(() => {
     const initializeAuth = async () => {
+      // Small delay to ensure localStorage is available
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('🔍 Initializing authentication...');
       const token = tokenStorage.getAccessToken();
       
+      console.log('🔑 Found token:', token ? 'Yes' : 'No');
+      
       if (!token) {
+        console.log('❌ No token found, setting auth failure');
         dispatch({ type: 'AUTH_FAILURE' });
         return;
       }
 
       try {
+        console.log('🚀 Attempting to get user profile...');
         dispatch({ type: 'AUTH_START' });
         const user = await authAPI.getProfile();
+        console.log('✅ User profile retrieved successfully:', user);
         dispatch({ type: 'AUTH_SUCCESS', payload: user });
-      } catch (error) {
-        console.error('Failed to get user profile:', error);
+      } catch (error: any) {
+        console.error('❌ Failed to get user profile:', error);
+        console.error('Error details:', error.response?.data);
+        
+        // If it's a 401 error, try to refresh token before giving up
+        if (error.response?.status === 401) {
+          console.log('🔄 401 error, token refresh should be attempted by interceptor');
+        }
+        
         tokenStorage.clearTokens();
         dispatch({ type: 'AUTH_FAILURE' });
       }
@@ -105,10 +121,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Login function
   const login = async (credentials: LoginCredentials): Promise<void> => {
     try {
+      console.log('🔐 Attempting login for:', credentials.email);
       dispatch({ type: 'AUTH_START' });
       const authResponse = await authAPI.login(credentials);
+      console.log('✅ Login successful, user:', authResponse.user);
+      console.log('🔑 Tokens stored in localStorage');
       dispatch({ type: 'AUTH_SUCCESS', payload: authResponse.user });
     } catch (error: any) {
+      console.error('❌ Login failed:', error);
       dispatch({ type: 'AUTH_FAILURE' });
       throw new Error(error.response?.data?.message || 'Login failed');
     }
@@ -189,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: AuthContextType = {
     user: state.user,
+    token: tokenStorage.getAccessToken(),
     isAuthenticated: state.isAuthenticated,
     isLoading: state.isLoading,
     login,

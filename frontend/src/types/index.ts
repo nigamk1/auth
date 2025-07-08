@@ -77,6 +77,7 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  token: string | null;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
@@ -201,4 +202,233 @@ export interface UserStats {
 export interface DashboardData {
   user: User;
   stats: UserStats;
+}
+
+// AI Teacher Platform Types
+export interface Session {
+  id: string;
+  title: string;
+  subject: string;
+  language: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  status: 'active' | 'completed' | 'paused';
+  startTime: Date;
+  endTime?: Date;
+  duration: number;
+  summary?: string;
+  tags: string[];
+  metadata: {
+    totalMessages: number;
+    totalQuestions: number;
+    topicsDiscussed: string[];
+    whiteboard: {
+      actions: number;
+      elements: number;
+    };
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Message {
+  id: string;
+  sessionId: string;
+  type: 'user_audio' | 'user_text' | 'ai_response' | 'system';
+  content: {
+    text?: string;
+    audioUrl?: string;
+    transcription?: string;
+    audioData?: {
+      duration: number;
+      fileSize: number;
+      format: string;
+    };
+  };
+  aiResponse?: {
+    spokenText: string;
+    audioUrl?: string;
+    whiteboardCommands?: WhiteboardCommand[];
+    emotion?: string;
+    confidence: number;
+  };
+  metadata: {
+    timestamp: Date;
+    language: string;
+    processingTime?: number;
+    tokens?: {
+      input: number;
+      output: number;
+    };
+  };
+  createdAt: Date;
+}
+
+export interface WhiteboardCommand {
+  type: 'draw' | 'text' | 'shape' | 'equation' | 'diagram' | 'clear' | 'highlight';
+  action: 'add' | 'update' | 'delete' | 'move';
+  element: {
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    properties: any;
+    content?: string;
+  };
+}
+
+export interface WhiteboardState {
+  elements: any[];
+  version: number;
+  lastModified: Date;
+  metadata: {
+    totalElements: number;
+    canvasSize: {
+      width: number;
+      height: number;
+    };
+    backgroundColor: string;
+  };
+}
+
+export interface SessionAnalytics {
+  overview: {
+    totalSessions: number;
+    totalDuration: number;
+    averageDuration: number;
+    completedSessions: number;
+    totalMessages: number;
+    totalQuestions: number;
+    subjects: string[];
+    languages: string[];
+  };
+  subjectBreakdown: {
+    _id: string;
+    count: number;
+    totalDuration: number;
+    averageDuration: number;
+  }[];
+  timeRange: string;
+}
+
+export interface VoiceRecorderState {
+  isRecording: boolean;
+  isPaused: boolean;
+  recordingTime: number;
+  audioBlob?: Blob;
+  audioUrl?: string;
+}
+
+export interface AIProcessingState {
+  status: 'idle' | 'transcribing' | 'thinking' | 'speaking' | 'complete';
+  message: string;
+  progress?: number;
+}
+
+export interface ClassroomSettings {
+  voiceSettings: {
+    inputDevice?: string;
+    outputDevice?: string;
+    noiseReduction: boolean;
+    autoGainControl: boolean;
+    echoCancellation: boolean;
+  };
+  teacherSettings: {
+    voice: 'male' | 'female';
+    speed: number;
+    emotion: 'neutral' | 'encouraging' | 'empathetic' | 'enthusiastic' | 'patient';
+    language: string;
+  };
+  whiteboardSettings: {
+    backgroundColor: string;
+    gridEnabled: boolean;
+    snapToGrid: boolean;
+    autoSave: boolean;
+  };
+  generalSettings: {
+    theme: 'light' | 'dark';
+    notifications: boolean;
+    autoplay: boolean;
+    subtitles: boolean;
+  };
+}
+
+// WebSocket Event Types
+export interface SocketEvents {
+  'join_session': (sessionId: string) => void;
+  'leave_session': (sessionId: string) => void;
+  'voice_message': (data: { sessionId: string; audioData: ArrayBuffer; language?: string }) => void;
+  'text_message': (data: { sessionId: string; text: string; language?: string }) => void;
+  'whiteboard_update': (data: { sessionId: string; elements: any[] }) => void;
+  'pause_session': (sessionId: string) => void;
+  'resume_session': (sessionId: string) => void;
+  'end_session': (sessionId: string) => void;
+}
+
+export interface SocketListeners {
+  'transcription_result': (data: { messageId: string; transcription: string }) => void;
+  'ai_response': (data: {
+    messageId: string;
+    text: string;
+    audioUrl?: string;
+    emotion: string;
+    confidence: number;
+    whiteboardCommands?: WhiteboardCommand[];
+  }) => void;
+  'processing_status': (data: { status: string; message: string }) => void;
+  'whiteboard_state': (elements: any[]) => void;
+  'whiteboard_update': (elements: any[]) => void;
+  'session_status_changed': (data: { sessionId: string; status: string; timestamp: Date }) => void;
+  'error': (data: { message: string }) => void;
+}
+
+// Form Types
+export interface CreateSessionFormData {
+  title: string;
+  subject: string;
+  language: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface SessionFilters {
+  status?: 'active' | 'completed' | 'paused';
+  subject?: string;
+  language?: string;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+}
+
+// API Response Types for AI Features
+export interface SessionsResponse {
+  sessions: Session[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface SessionDetailsResponse {
+  session: Session;
+  messages: Message[];
+  whiteboard: WhiteboardState | null;
+}
+
+export interface ProcessMessageResponse {
+  userMessage: {
+    id: string;
+    text?: string;
+    transcription?: string;
+    timestamp: Date;
+  };
+  aiResponse: {
+    id: string;
+    text: string;
+    audioUrl?: string;
+    emotion: string;
+    confidence: number;
+    whiteboardCommands?: WhiteboardCommand[];
+    timestamp: Date;
+  };
 }
