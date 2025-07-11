@@ -44,8 +44,7 @@ const TranscriptSchema = new Schema<ITranscript>({
   sessionId: {
     type: Schema.Types.ObjectId,
     ref: 'Session',
-    required: true,
-    index: true
+    required: true
   },
   messages: [{
     id: {

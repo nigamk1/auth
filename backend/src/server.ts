@@ -1,10 +1,13 @@
+// Load environment variables first, before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import { connectDB } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -20,9 +23,6 @@ import sessionMemoryRoutes from './routes/sessionMemory';
 // Socket.IO
 import RealTimeSocketHandler from './api/realtime/socketHandler';
 import { setSocketHandler, injectSocketHandler } from './middleware/socketMiddleware';
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);

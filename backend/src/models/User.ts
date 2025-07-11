@@ -117,10 +117,7 @@ const userSchema = new Schema<IUser>({
   }
 });
 
-// Indexes for better performance
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
-userSchema.index({ githubId: 1 });
+// Indexes for better performance (only for fields that don't already have unique: true)
 userSchema.index({ passwordResetToken: 1 });
 userSchema.index({ emailVerificationToken: 1 });
 

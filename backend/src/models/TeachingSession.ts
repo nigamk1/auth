@@ -138,14 +138,12 @@ const TeachingSessionSchema = new Schema<ITeachingSession>({
   sessionId: {
     type: Schema.Types.ObjectId,
     ref: 'Session',
-    required: true,
-    index: true
+    required: true
   },
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
-    index: true
+    required: true
   },
   topic: {
     type: String,

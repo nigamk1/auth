@@ -71,8 +71,7 @@ const WhiteboardStateSchema = new Schema<IWhiteboardState>({
     type: Schema.Types.ObjectId,
     ref: 'Session',
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   version: {
     type: Number,
@@ -254,8 +253,7 @@ WhiteboardStateSchema.pre('save', function(next) {
   next();
 });
 
-// Index for efficient queries
-WhiteboardStateSchema.index({ sessionId: 1 });
+// Index for efficient queries (sessionId already has unique index)
 WhiteboardStateSchema.index({ version: 1 });
 WhiteboardStateSchema.index({ 'elements.timestamp': 1 });
 

@@ -151,8 +151,7 @@ const SessionMemorySchema = new Schema<ISessionMemory>({
     type: Schema.Types.ObjectId,
     ref: 'Session',
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   userId: {
     type: Schema.Types.ObjectId,
@@ -218,9 +217,8 @@ const SessionMemorySchema = new Schema<ISessionMemory>({
   collection: 'sessionmemories'
 });
 
-// Indexes for efficient querying
+// Indexes for efficient querying (sessionId already has unique index)
 SessionMemorySchema.index({ userId: 1, createdAt: -1 });
-SessionMemorySchema.index({ sessionId: 1 });
 SessionMemorySchema.index({ 'chatLog.timestamp': -1 });
 SessionMemorySchema.index({ 'summary.sessionRating': -1 });
 
