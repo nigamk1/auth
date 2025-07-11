@@ -1,0 +1,642 @@
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Socket } from 'socket.io-client';
+import Button from '../ui/Button';
+import Alert from '../ui/Alert';
+import LoadingSpinner from '../ui/LoadingSpinner';
+import { Mic, MicOff, Volume2, VolumeX, Loader, AlertTriangle, Settings } from 'lucide-react';
+import { useLanguage } from '../../contexts/LanguageContext';
+
+interface VoiceHandlerProps {
+  socket: Socket | null;
+  sessionId: string | null;
+  isConnected: boolean;
+  onTranscriptionReceived?: (text: string) => void;
+  onAIResponseReceived?: (text: string, audioData?: ArrayBuffer) => void;
+  disabled?: boolean;
+}
+
+interface VoiceState {
+  isRecording: boolean;
+  isProcessing: boolean;
+  isPlaying: boolean;
+  isMuted: boolean;
+  transcriptionText: string;
+  errorMessage: string;
+  micPermission: 'granted' | 'denied' | 'prompt' | 'checking';
+  audioSupported: boolean;
+  recordingDuration: number;
+}
+
+interface VoiceError {
+  type: 'permission' | 'network' | 'processing' | 'playback' | 'browser';
+  message: string;
+  suggestion?: string;
+  action?: () => void;
+}
+
+export const VoiceHandler: React.FC<VoiceHandlerProps> = ({
+  socket,
+  sessionId,
+  isConnected,
+  onTranscriptionReceived,
+  onAIResponseReceived,
+  disabled = false
+}) => {
+  const { getVoiceSettings } = useLanguage();
+  const [voiceState, setVoiceState] = useState<VoiceState>({
+    isRecording: false,
+    isProcessing: false,
+    isPlaying: false,
+    isMuted: false,
+    transcriptionText: '',
+    errorMessage: '',
+    micPermission: 'prompt',
+    audioSupported: typeof navigator !== 'undefined' && !!navigator.mediaDevices,
+    recordingDuration: 0
+  });
+
+  const [currentError, setCurrentError] = useState<VoiceError | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const maxRecordingTime = 60000; // 60 seconds max recording
+
+  // Check microphone permissions on component mount
+  useEffect(() => {
+    checkMicrophonePermissions();
+  }, []);
+
+  // Initialize audio context
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.AudioContext) {
+      audioContextRef.current = new AudioContext();
+    }
+    
+    return () => {
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  // Mic permission checking
+  const checkMicrophonePermissions = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setVoiceState(prev => ({ ...prev, audioSupported: false }));
+      setCurrentError({
+        type: 'browser',
+        message: 'Your browser doesn\'t support voice recording',
+        suggestion: 'Please use a modern browser like Chrome, Firefox, or Safari'
+      });
+      return;
+    }
+
+    setVoiceState(prev => ({ ...prev, micPermission: 'checking' }));
+
+    try {
+      // Check if we can access the microphone
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
+      // Permission granted
+      setVoiceState(prev => ({ ...prev, micPermission: 'granted' }));
+      setCurrentError(null);
+      
+      // Stop the test stream
+      stream.getTracks().forEach(track => track.stop());
+
+    } catch (error: any) {
+      console.error('Microphone permission error:', error);
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        setVoiceState(prev => ({ ...prev, micPermission: 'denied' }));
+        setCurrentError({
+          type: 'permission',
+          message: 'Microphone access denied',
+          suggestion: 'Please allow microphone access in your browser settings to use voice features',
+          action: () => checkMicrophonePermissions()
+        });
+      } else if (error.name === 'NotFoundError') {
+        setVoiceState(prev => ({ ...prev, micPermission: 'denied' }));
+        setCurrentError({
+          type: 'permission',
+          message: 'No microphone found',
+          suggestion: 'Please connect a microphone to use voice features'
+        });
+      } else {
+        setVoiceState(prev => ({ ...prev, micPermission: 'denied' }));
+        setCurrentError({
+          type: 'permission',
+          message: 'Unable to access microphone',
+          suggestion: 'Please check your microphone settings and try again',
+          action: () => checkMicrophonePermissions()
+        });
+      }
+    }
+  };
+
+  // Socket event listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleTranscriptionResult = (data: { text: string; confidence: number }) => {
+      setVoiceState(prev => ({
+        ...prev,
+        transcriptionText: data.text,
+        isProcessing: false
+      }));
+      
+      if (onTranscriptionReceived) {
+        onTranscriptionReceived(data.text);
+      }
+    };
+
+    const handleAIAudioResponse = (data: { 
+      text: string; 
+      audioBuffer: ArrayBuffer;
+      audioFormat: string;
+    }) => {
+      setVoiceState(prev => ({ ...prev, isProcessing: false }));
+      
+      if (onAIResponseReceived) {
+        onAIResponseReceived(data.text, data.audioBuffer);
+      }
+      
+      // Auto-play the AI response if not muted
+      if (!voiceState.isMuted && data.audioBuffer) {
+        playAudioBuffer(data.audioBuffer, data.audioFormat);
+      }
+    };
+
+    const handleVoiceError = (error: { message: string; code?: string }) => {
+      setVoiceState(prev => ({
+        ...prev,
+        isProcessing: false,
+        isRecording: false,
+        errorMessage: error.message
+      }));
+    };
+
+    socket.on('transcription-result', handleTranscriptionResult);
+    socket.on('ai-audio-response', handleAIAudioResponse);
+    socket.on('voice-error', handleVoiceError);
+
+    return () => {
+      socket.off('transcription-result', handleTranscriptionResult);
+      socket.off('ai-audio-response', handleAIAudioResponse);
+      socket.off('voice-error', handleVoiceError);
+    };
+  }, [socket, onTranscriptionReceived, onAIResponseReceived, voiceState.isMuted]);
+
+  // Enhanced recording start with comprehensive error handling
+  const startRecording = useCallback(async () => {
+    if (!socket || !sessionId || disabled) {
+      setCurrentError({
+        type: 'network',
+        message: 'Cannot start recording',
+        suggestion: 'Please ensure you are connected to a session'
+      });
+      return;
+    }
+
+    if (voiceState.micPermission === 'denied') {
+      setCurrentError({
+        type: 'permission',
+        message: 'Microphone access denied',
+        suggestion: 'Please allow microphone access to use voice features',
+        action: () => checkMicrophonePermissions()
+      });
+      return;
+    }
+
+    try {
+      setVoiceState(prev => ({ ...prev, errorMessage: '', recordingDuration: 0 }));
+      setCurrentError(null);
+
+      // Request microphone access with enhanced settings
+      const voiceSettings = getVoiceSettings();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          latency: 0.01 // Low latency for real-time feel
+        }
+      });
+
+      streamRef.current = stream;
+      audioChunksRef.current = [];
+
+      // Create MediaRecorder with fallback codec support
+      const options: MediaRecorderOptions = {};
+      
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options.mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options.mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options.mimeType = 'audio/mp4';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        options.mimeType = 'audio/ogg';
+      } else {
+        throw new Error('No supported audio format found in your browser');
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        if (audioChunksRef.current.length > 0) {
+          await processRecording();
+        }
+        
+        // Clean up stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+
+        setVoiceState(prev => ({ 
+          ...prev, 
+          isRecording: false,
+          recordingDuration: 0
+        }));
+
+        // Clear recording timer
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+      };
+
+      mediaRecorder.onerror = (event: any) => {
+        console.error('MediaRecorder error:', event.error);
+        setCurrentError({
+          type: 'processing',
+          message: 'Recording failed',
+          suggestion: 'Please try again or check your microphone'
+        });
+        stopRecording();
+      };
+
+      // Start recording
+      mediaRecorder.start(100); // Collect data every 100ms
+      
+      setVoiceState(prev => ({ 
+        ...prev, 
+        isRecording: true,
+        micPermission: 'granted'
+      }));
+
+      // Start recording duration timer
+      recordingTimerRef.current = setInterval(() => {
+        setVoiceState(prev => {
+          const newDuration = prev.recordingDuration + 1000;
+          
+          // Auto-stop at max recording time
+          if (newDuration >= maxRecordingTime) {
+            stopRecording();
+            setCurrentError({
+              type: 'processing',
+              message: 'Recording stopped automatically',
+              suggestion: `Maximum recording time of ${maxRecordingTime / 1000} seconds reached`
+            });
+            return prev;
+          }
+          
+          return { ...prev, recordingDuration: newDuration };
+        });
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('Error starting recording:', error);
+      
+      setVoiceState(prev => ({ ...prev, isRecording: false }));
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        setVoiceState(prev => ({ ...prev, micPermission: 'denied' }));
+        setCurrentError({
+          type: 'permission',
+          message: 'Microphone access denied',
+          suggestion: 'Please allow microphone access in your browser settings',
+          action: () => checkMicrophonePermissions()
+        });
+      } else if (error.name === 'NotFoundError') {
+        setCurrentError({
+          type: 'permission',
+          message: 'No microphone found',
+          suggestion: 'Please connect a microphone to use voice features'
+        });
+      } else if (error.name === 'NotReadableError') {
+        setCurrentError({
+          type: 'permission',
+          message: 'Microphone is busy',
+          suggestion: 'Please close other applications using the microphone and try again'
+        });
+      } else {
+        setCurrentError({
+          type: 'processing',
+          message: 'Failed to start recording',
+          suggestion: error.message || 'Please check your microphone and try again'
+        });
+      }
+    }
+  }, [socket, sessionId, disabled, voiceState.micPermission, getVoiceSettings, maxRecordingTime]);
+        }
+      };
+
+      mediaRecorder.start(100); // Collect data every 100ms
+      
+      setVoiceState(prev => ({
+        ...prev,
+        isRecording: true,
+        transcriptionText: ''
+      }));
+
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      setVoiceState(prev => ({
+        ...prev,
+        errorMessage: error instanceof Error ? error.message : 'Failed to start recording'
+      }));
+    }
+  }, [socket, sessionId, disabled]);
+
+  // Stop recording and process audio
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && voiceState.isRecording) {
+      mediaRecorderRef.current.stop();
+      setVoiceState(prev => ({
+        ...prev,
+        isRecording: false,
+        isProcessing: true
+      }));
+    }
+  }, [voiceState.isRecording]);
+
+  // Process the recorded audio and send to backend
+  const processRecording = useCallback(async () => {
+    if (!socket || !sessionId || audioChunksRef.current.length === 0) return;
+
+    try {
+      // Create blob from recorded chunks
+      const audioBlob = new Blob(audioChunksRef.current, { 
+        type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
+      });
+
+      // Convert to ArrayBuffer
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // Send audio data to backend via Socket.IO
+      socket.emit('voice-message', {
+        sessionId,
+        audioData: arrayBuffer,
+        audioFormat: mediaRecorderRef.current?.mimeType || 'audio/webm',
+        timestamp: new Date().toISOString()
+      });
+
+      // Clear chunks for next recording
+      audioChunksRef.current = [];
+
+    } catch (error) {
+      console.error('Error processing recording:', error);
+      setVoiceState(prev => ({
+        ...prev,
+        isProcessing: false,
+        errorMessage: 'Failed to process recording'
+      }));
+    }
+  }, [socket, sessionId]);
+
+  // Play audio buffer from AI response
+  const playAudioBuffer = useCallback(async (audioBuffer: ArrayBuffer, format: string) => {
+    if (!audioContextRef.current || voiceState.isMuted) return;
+
+    try {
+      setVoiceState(prev => ({ ...prev, isPlaying: true }));
+
+      // Stop any currently playing audio
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+
+      // Create audio element and play
+      const audioBlob = new Blob([audioBuffer], { type: format });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      currentAudioRef.current = audio;
+
+      audio.onended = () => {
+        setVoiceState(prev => ({ ...prev, isPlaying: false }));
+        URL.revokeObjectURL(audioUrl);
+        currentAudioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setVoiceState(prev => ({ 
+          ...prev, 
+          isPlaying: false,
+          errorMessage: 'Failed to play audio response'
+        }));
+        URL.revokeObjectURL(audioUrl);
+        currentAudioRef.current = null;
+      };
+
+      await audio.play();
+
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setVoiceState(prev => ({
+        ...prev,
+        isPlaying: false,
+        errorMessage: 'Failed to play audio'
+      }));
+    }
+  }, [voiceState.isMuted]);
+
+  // Toggle mute state
+  const toggleMute = useCallback(() => {
+    setVoiceState(prev => ({ ...prev, isMuted: !prev.isMuted }));
+    
+    // Stop any currently playing audio when muting
+    if (!voiceState.isMuted && currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+      setVoiceState(prev => ({ ...prev, isPlaying: false }));
+    }
+  }, [voiceState.isMuted]);
+
+  // Stop any ongoing audio playback
+  const stopAudio = useCallback(() => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+      setVoiceState(prev => ({ ...prev, isPlaying: false }));
+    }
+  }, []);
+
+  // Clear error message
+  const clearError = useCallback(() => {
+    setVoiceState(prev => ({ ...prev, errorMessage: '' }));
+  }, []);
+
+  // Check if browser supports required features
+  const isSupported = typeof navigator !== 'undefined' && 
+                     navigator.mediaDevices && 
+                     typeof navigator.mediaDevices.getUserMedia === 'function' &&
+                     typeof MediaRecorder !== 'undefined';
+
+  if (!isSupported) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <p className="text-red-700 text-sm">
+          Voice features are not supported in this browser. Please use a modern browser with microphone access.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+      {/* Voice Controls */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-800">Voice Interaction</h3>
+        
+        <div className="flex items-center gap-2">
+          {/* Connection Status */}
+          <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} 
+               title={isConnected ? 'Connected' : 'Disconnected'} />
+          
+          {/* Mute Toggle */}
+          <Button
+            onClick={toggleMute}
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            className="p-2"
+          >
+            {voiceState.isMuted ? (
+              <VolumeX className="w-4 h-4" />
+            ) : (
+              <Volume2 className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Recording Controls */}
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={voiceState.isRecording ? stopRecording : startRecording}
+          disabled={disabled || !isConnected || voiceState.isProcessing}
+          variant={voiceState.isRecording ? "danger" : "primary"}
+          className="flex items-center gap-2"
+        >
+          {voiceState.isProcessing ? (
+            <Loader className="w-4 h-4 animate-spin" />
+          ) : voiceState.isRecording ? (
+            <MicOff className="w-4 h-4" />
+          ) : (
+            <Mic className="w-4 h-4" />
+          )}
+          
+          {voiceState.isProcessing ? 'Processing...' :
+           voiceState.isRecording ? 'Stop Recording' : 'Start Recording'}
+        </Button>
+
+        {voiceState.isPlaying && (
+          <Button
+            onClick={stopAudio}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <VolumeX className="w-4 h-4" />
+            Stop Audio
+          </Button>
+        )}
+      </div>
+
+      {/* Status Information */}
+      {voiceState.transcriptionText && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-700">
+            <strong>Transcribed:</strong> {voiceState.transcriptionText}
+          </p>
+        </div>
+      )}
+
+      {voiceState.isRecording && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-700 flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            Recording... Speak now
+          </p>
+        </div>
+      )}
+
+      {voiceState.isProcessing && (
+        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-700 flex items-center gap-2">
+            <Loader className="w-4 h-4 animate-spin" />
+            Processing your voice message...
+          </p>
+        </div>
+      )}
+
+      {voiceState.isPlaying && (
+        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+          <p className="text-sm text-purple-700 flex items-center gap-2">
+            <Volume2 className="w-4 h-4" />
+            Playing AI response...
+          </p>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {voiceState.errorMessage && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-red-700">{voiceState.errorMessage}</p>
+            <Button
+              onClick={clearError}
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-800"
+            >
+              ×
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="text-xs text-gray-500 space-y-1">
+        <p>• Click "Start Recording" and speak your question to the AI teacher</p>
+        <p>• The AI will respond with both text and voice</p>
+        <p>• Use the mute button to disable audio responses</p>
+        <p>• Make sure your microphone is enabled in your browser</p>
+      </div>
+    </div>
+  );
+};
+
+export default VoiceHandler;

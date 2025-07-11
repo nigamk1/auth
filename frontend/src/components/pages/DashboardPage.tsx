@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { LanguageSelector } from "../ui/LanguageSelector";
+import { UI_TRANSLATIONS } from "../../types/language";
 import { Layout } from "../ui/Layout";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import Alert from "../ui/Alert";
@@ -16,6 +19,7 @@ const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const { user } = useAuth();
+  const { currentLanguage, translate } = useLanguage();
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -72,7 +76,14 @@ const DashboardPage: React.FC = () => {
                   Here's what's happening with your account today.
                 </p>
               </div>
-              <div className="mt-4 sm:mt-0">
+              <div className="mt-4 sm:mt-0 flex items-center space-x-4">
+                <div className="text-right">
+                  <LanguageSelector size="sm" />
+                  <p className="text-xs text-gray-500 mt-1">
+                    AI will respond in {currentLanguage === 'en' ? 'English' : 
+                                       currentLanguage === 'hi' ? 'हिंदी' : 'Hinglish'}
+                  </p>
+                </div>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     user?.isEmailVerified
@@ -166,7 +177,51 @@ const DashboardPage: React.FC = () => {
             <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
               Quick Actions
             </h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Link
+                to="/ai-teacher-session"
+                className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+              >
+                <div>
+                  <span className="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 group-hover:bg-blue-100">
+                    🤖
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {translate(UI_TRANSLATIONS.aiTeacher)}
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Start an interactive AI teaching session with voice and whiteboard in your preferred language.
+                  </p>
+                  <div className="mt-2 flex items-center space-x-1">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      {currentLanguage === 'en' ? '🇺🇸 English' : 
+                       currentLanguage === 'hi' ? '🇮🇳 हिंदी' : '🇮🇳 Hinglish'}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/ai-chat"
+                className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-green-500 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+              >
+                <div>
+                  <span className="rounded-lg inline-flex p-3 bg-green-50 text-green-700 group-hover:bg-green-100">
+                    💬
+                  </span>
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    AI Chat Q&A
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500">
+                    Ask questions and get intelligent answers with text or voice input.
+                  </p>
+                </div>
+              </Link>
+
               <Link
                 to="/settings"
                 className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
@@ -186,37 +241,43 @@ const DashboardPage: React.FC = () => {
                 </div>
               </Link>
 
-              <div className="relative group bg-white p-6 border border-gray-300 rounded-lg opacity-50">
+              <Link
+                to="/realtime"
+                className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-purple-500 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+              >
                 <div>
-                  <span className="rounded-lg inline-flex p-3 bg-gray-50 text-gray-400">
-                    📊
+                  <span className="rounded-lg inline-flex p-3 bg-purple-50 text-purple-700 group-hover:bg-purple-100">
+                    ⚡
                   </span>
                 </div>
                 <div className="mt-4">
-                  <h3 className="text-lg font-medium text-gray-500">
-                    Analytics
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Real-Time Demo
                   </h3>
-                  <p className="mt-2 text-sm text-gray-400">
-                    View detailed analytics and reports. (Coming soon)
+                  <p className="mt-2 text-sm text-gray-500">
+                    Experience live collaboration with Socket.IO real-time features.
                   </p>
                 </div>
-              </div>
+              </Link>
 
-              <div className="relative group bg-white p-6 border border-gray-300 rounded-lg opacity-50">
+              <Link
+                to="/sessions"
+                className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+              >
                 <div>
-                  <span className="rounded-lg inline-flex p-3 bg-gray-50 text-gray-400">
-                    🔔
+                  <span className="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 group-hover:bg-indigo-100">
+                    �
                   </span>
                 </div>
                 <div className="mt-4">
-                  <h3 className="text-lg font-medium text-gray-500">
-                    Notifications
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Previous Sessions
                   </h3>
-                  <p className="mt-2 text-sm text-gray-400">
-                    Manage your notification preferences. (Coming soon)
+                  <p className="mt-2 text-sm text-gray-500">
+                    Review your learning history and session analytics.
                   </p>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>

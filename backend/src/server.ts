@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -12,12 +13,24 @@ import { logger } from './utils/logger';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import protectedRoutes from './routes/protected';
+import aiRoutes from './api/ai/routes';
+import whiteboardRoutes from './api/whiteboard/routes';
+import sessionMemoryRoutes from './routes/sessionMemory';
+
+// Socket.IO
+import RealTimeSocketHandler from './api/realtime/socketHandler';
+import { setSocketHandler, injectSocketHandler } from './middleware/socketMiddleware';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
+
+// Initialize Socket.IO
+const socketHandler = new RealTimeSocketHandler(server);
+setSocketHandler(socketHandler);
 
 // Connect to database
 connectDB();
@@ -77,6 +90,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Socket.IO middleware
+app.use(injectSocketHandler);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -91,6 +107,9 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/protected', protectedRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/whiteboard', whiteboardRoutes);
+app.use('/api/session-memory', sessionMemoryRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -105,9 +124,12 @@ app.use(errorHandler);
 
 // Start server (only in development)
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     logger.info(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
     logger.info(`📊 Health check: http://localhost:${PORT}/health`);
+    logger.info(`🔌 Real-time Socket.IO enabled`);
+    logger.info(`📝 Whiteboard API available at /api/whiteboard`);
+    logger.info(`🧠 AI Teaching API available at /api/ai/teaching`);
   });
 }
 

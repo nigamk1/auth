@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getApiUrl } from '../utils/environment';
 import type { 
   ApiResponse, 
   AuthResponse, 
@@ -16,7 +17,7 @@ import type {
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: getApiUrl(),
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
