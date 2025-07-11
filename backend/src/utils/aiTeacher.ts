@@ -27,12 +27,22 @@ export interface AIResponse {
   text: string;
   shouldDrawOnWhiteboard: boolean;
   whiteboardActions?: Array<{
-    type: 'draw' | 'write' | 'formula' | 'diagram';
+    type: 'write' | 'draw' | 'formula' | 'diagram' | 'steps' | 'example' | 'clear';
     content: string;
     position?: { x: number; y: number };
+    style?: {
+      color?: string;
+      size?: 'small' | 'medium' | 'large';
+      font?: 'normal' | 'bold' | 'italic';
+    };
+    animation?: {
+      delay?: number; // milliseconds to wait before drawing
+      duration?: number; // milliseconds to complete drawing
+    };
   }>;
   followUpQuestions?: string[];
   relatedTopics?: string[];
+  teachingMode?: 'explanation' | 'demonstration' | 'practice' | 'assessment';
 }
 
 export class AITeacherService {
@@ -145,11 +155,67 @@ TEACHING GUIDELINES:
 6. Adapt your language to the student's level
 7. Maintain the specified language throughout your response
 
-WHITEBOARD INTEGRATION:
-When you want to draw something on the whiteboard, include specific instructions like:
-- [DRAW: mathematical formula] for equations
-- [DRAW: diagram] for visual representations
-- [DRAW: text] for important notes or keywords
+WHITEBOARD INTEGRATION - ADVANCED TEACHING:
+You are an AI teacher who can actively use a whiteboard while speaking, just like a real teacher in a classroom. 
+Your responses will be converted to VOICE (spoken aloud) AND simultaneously rendered on a WHITEBOARD.
+
+**TEACHING BEHAVIOR GUIDELINES:**
+
+1. **ALWAYS START WITH [CLEAR]** if teaching a new concept to create a clean slate
+2. **SPEAK AND WRITE SIMULTANEOUSLY** - Whatever you say, also write/draw on the whiteboard
+3. **BUILD PROGRESSIVELY** - Don't show everything at once, reveal information step by step
+4. **USE VISUAL HIERARCHY** - Main concepts at top, details below, examples to the side
+
+**WHITEBOARD COMMANDS FOR VOICE + VISUAL TEACHING:**
+
+1. **WRITE KEY POINTS**: Write important concepts while speaking
+   - [WRITE: "Main Concept" | position: "top" | size: "large" | color: "blue"]
+   - [WRITE: "Definition: ..." | position: "center" | size: "medium" | color: "black"]
+   - [WRITE: "Key Point 1", "Key Point 2" | position: "left" | size: "medium"]
+
+2. **MATHEMATICAL EXPRESSIONS**: Write formulas as you explain them
+   - [FORMULA: "E = mc²" | position: "center" | size: "large" | color: "red"]
+   - [FORMULA: "a² + b² = c²" | position: "top" | highlight: "true"]
+
+3. **STEP-BY-STEP PROCESSES**: Show each step visually as you explain
+   - [STEPS: "Step 1: Identify variables", "Step 2: Apply formula", "Step 3: Calculate" | layout: "vertical"]
+   - [STEPS: "First: ...", "Then: ...", "Finally: ..." | position: "left"]
+
+4. **DIAGRAMS AND VISUALS**: Draw diagrams to illustrate concepts
+   - [DIAGRAM: "flowchart" | description: "photosynthesis process" | position: "center"]
+   - [DIAGRAM: "graph" | description: "y = 2x + 1" | position: "right"]
+   - [DIAGRAM: "anatomy" | description: "human heart structure"]
+
+5. **EXAMPLES AND DEMONSTRATIONS**: Show concrete examples
+   - [EXAMPLE: "solve 2x + 5 = 15" | interactive: "true" | position: "bottom"]
+   - [EXAMPLE: "water cycle in nature" | position: "center"]
+
+**VOICE + WHITEBOARD SYNCHRONIZATION:**
+- When you say "Let me write this down...", immediately use [WRITE: "..."]
+- When you say "Here's the formula...", use [FORMULA: "..."]
+- When you say "Let me draw this...", use [DIAGRAM: "..."]
+- When you say "Step by step...", use [STEPS: "..."]
+- When you say "For example...", use [EXAMPLE: "..."]
+
+**TEACHING LANGUAGE PATTERNS:**
+Use phrases that indicate writing/drawing:
+- "Let me write this on the board..."
+- "I'll draw a diagram to show..."
+- "Here's the formula..." (then write it)
+- "Let me clear the board and start fresh..."
+- "As you can see here..." (referring to what's written)
+- "Notice how I've written..."
+
+WHITEBOARD COMMANDS FORMAT:
+Use these exact formats in your response:
+- [CLEAR] - Clear the whiteboard
+- [WRITE: "text" | position: "top/center/bottom" | size: "large/medium/small" | color: "blue/red/black"]
+- [DIAGRAM: "type" | description: "what to draw" | position: "left/right/center"]
+- [FORMULA: "expression" | highlight: "true/false"]
+- [STEPS: "step1", "step2", "step3" | layout: "vertical/horizontal"]
+- [EXAMPLE: "description" | interactive: "true/false"]
+
+Remember: You're not just answering - you're TEACHING with visual aids!
 
 RESPONSE FORMAT:
 Provide clear, educational responses that help the student learn. If the topic would benefit from visual representation, mention what should be drawn on the whiteboard. Always respond in the specified language (${currentLanguage}).
@@ -183,22 +249,20 @@ Learning objectives: ${context.learningObjectives?.join(', ') || 'Flexible learn
     const whiteboardActions: AIResponse['whiteboardActions'] = [];
     let cleanedText = responseText;
 
-    // Extract whiteboard instructions
-    const drawMatches = responseText.match(/\[DRAW:\s*([^\]]+)\]/g);
-    if (drawMatches) {
-      drawMatches.forEach(match => {
-        const content = match.replace(/\[DRAW:\s*([^\]]+)\]/, '$1').trim();
-        const action = this.determineDrawingAction(content);
-        whiteboardActions.push(action);
-        cleanedText = cleanedText.replace(match, '').trim();
-      });
-    }
+    // Parse different whiteboard commands
+    this.parseWhiteboardCommands(responseText, whiteboardActions);
+    
+    // Remove all whiteboard commands from the text
+    cleanedText = this.cleanTextFromCommands(responseText);
 
     // Extract follow-up questions
-    const followUpQuestions = this.extractFollowUpQuestions(responseText);
+    const followUpQuestions = this.extractFollowUpQuestions(cleanedText);
     
     // Extract related topics
-    const relatedTopics = this.extractRelatedTopics(responseText);
+    const relatedTopics = this.extractRelatedTopics(cleanedText);
+
+    // Determine teaching mode based on content
+    const teachingMode = this.determineTeachingMode(responseText);
 
     return {
       text: cleanedText,
@@ -206,7 +270,196 @@ Learning objectives: ${context.learningObjectives?.join(', ') || 'Flexible learn
       whiteboardActions: whiteboardActions.length > 0 ? whiteboardActions : undefined,
       followUpQuestions: followUpQuestions.length > 0 ? followUpQuestions : undefined,
       relatedTopics: relatedTopics.length > 0 ? relatedTopics : undefined,
+      teachingMode
     };
+  }
+
+  /**
+   * Parse all whiteboard commands from the response
+   */
+  private parseWhiteboardCommands(text: string, actions: NonNullable<AIResponse['whiteboardActions']>) {
+    let delay = 0;
+
+    // Parse CLEAR command
+    const clearMatches = text.match(/\[CLEAR\]/g);
+    if (clearMatches) {
+      actions.push({
+        type: 'clear',
+        content: '',
+        animation: { delay, duration: 500 }
+      });
+      delay += 600;
+    }
+
+    // Parse WRITE commands
+    const writeMatches = text.match(/\[WRITE:\s*"([^"]+)"(?:\s*\|\s*([^\]]+))?\]/g);
+    if (writeMatches) {
+      writeMatches.forEach(match => {
+        const content = match.match(/"([^"]+)"/)?.[1] || '';
+        const params = this.parseCommandParams(match);
+        
+        actions.push({
+          type: 'write',
+          content,
+          position: this.getPosition(params.position),
+          style: {
+            color: params.color || 'black',
+            size: params.size as 'small' | 'medium' | 'large' || 'medium',
+            font: params.font as 'normal' | 'bold' | 'italic' || 'normal'
+          },
+          animation: { delay, duration: 1000 }
+        });
+        delay += 1200;
+      });
+    }
+
+    // Parse DIAGRAM commands
+    const diagramMatches = text.match(/\[DIAGRAM:\s*"([^"]+)"(?:\s*\|\s*([^\]]+))?\]/g);
+    if (diagramMatches) {
+      diagramMatches.forEach(match => {
+        const content = match.match(/"([^"]+)"/)?.[1] || '';
+        const params = this.parseCommandParams(match);
+        
+        actions.push({
+          type: 'diagram',
+          content: `${params.description || content}`,
+          position: this.getPosition(params.position),
+          style: { color: params.color || 'blue', size: 'large' },
+          animation: { delay, duration: 2000 }
+        });
+        delay += 2500;
+      });
+    }
+
+    // Parse FORMULA commands
+    const formulaMatches = text.match(/\[FORMULA:\s*"([^"]+)"(?:\s*\|\s*([^\]]+))?\]/g);
+    if (formulaMatches) {
+      formulaMatches.forEach(match => {
+        const content = match.match(/"([^"]+)"/)?.[1] || '';
+        const params = this.parseCommandParams(match);
+        
+        actions.push({
+          type: 'formula',
+          content,
+          position: this.getPosition('center'),
+          style: {
+            color: params.highlight === 'true' ? 'red' : 'black',
+            size: 'large',
+            font: 'bold'
+          },
+          animation: { delay, duration: 1500 }
+        });
+        delay += 1800;
+      });
+    }
+
+    // Parse STEPS commands
+    const stepsMatches = text.match(/\[STEPS:\s*"([^"]+)"(?:,\s*"([^"]+)")*(?:\s*\|\s*([^\]]+))?\]/g);
+    if (stepsMatches) {
+      stepsMatches.forEach(match => {
+        const steps = [...match.matchAll(/"([^"]+)"/g)].map(m => m[1]);
+        const params = this.parseCommandParams(match);
+        
+        steps.forEach((step, index) => {
+          actions.push({
+            type: 'steps',
+            content: `${index + 1}. ${step}`,
+            position: { 
+              x: params.layout === 'horizontal' ? 100 + (index * 200) : 100, 
+              y: params.layout === 'horizontal' ? 200 : 150 + (index * 50) 
+            },
+            style: { color: 'black', size: 'medium' },
+            animation: { delay, duration: 800 }
+          });
+          delay += 1000;
+        });
+      });
+    }
+
+    // Parse EXAMPLE commands
+    const exampleMatches = text.match(/\[EXAMPLE:\s*"([^"]+)"(?:\s*\|\s*([^\]]+))?\]/g);
+    if (exampleMatches) {
+      exampleMatches.forEach(match => {
+        const content = match.match(/"([^"]+)"/)?.[1] || '';
+        const params = this.parseCommandParams(match);
+        
+        actions.push({
+          type: 'example',
+          content,
+          position: this.getPosition('bottom'),
+          style: { color: 'green', size: 'medium', font: 'italic' },
+          animation: { delay, duration: 1200 }
+        });
+        delay += 1500;
+      });
+    }
+  }
+
+  /**
+   * Parse command parameters from whiteboard commands
+   */
+  private parseCommandParams(command: string): Record<string, string> {
+    const params: Record<string, string> = {};
+    const paramSection = command.split('|').slice(1).join('|');
+    
+    if (paramSection) {
+      const paramPairs = paramSection.split('|');
+      paramPairs.forEach(pair => {
+        const [key, value] = pair.split(':').map(s => s.trim());
+        if (key && value) {
+          params[key] = value.replace(/"/g, '');
+        }
+      });
+    }
+    
+    return params;
+  }
+
+  /**
+   * Get position coordinates based on position string
+   */
+  private getPosition(position?: string): { x: number; y: number } {
+    switch (position) {
+      case 'top': return { x: 400, y: 100 };
+      case 'center': return { x: 400, y: 300 };
+      case 'bottom': return { x: 400, y: 500 };
+      case 'left': return { x: 200, y: 300 };
+      case 'right': return { x: 600, y: 300 };
+      default: return { x: 400, y: 250 };
+    }
+  }
+
+  /**
+   * Clean text from all whiteboard commands
+   */
+  private cleanTextFromCommands(text: string): string {
+    return text
+      .replace(/\[CLEAR\]/g, '')
+      .replace(/\[WRITE:[^\]]+\]/g, '')
+      .replace(/\[DIAGRAM:[^\]]+\]/g, '')
+      .replace(/\[FORMULA:[^\]]+\]/g, '')
+      .replace(/\[STEPS:[^\]]+\]/g, '')
+      .replace(/\[EXAMPLE:[^\]]+\]/g, '')
+      .replace(/\[INTERACTIVE:[^\]]+\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Determine the teaching mode based on content
+   */
+  private determineTeachingMode(text: string): AIResponse['teachingMode'] {
+    const lowerText = text.toLowerCase();
+    
+    if (lowerText.includes('[diagram:') || lowerText.includes('[example:')) {
+      return 'demonstration';
+    } else if (lowerText.includes('[interactive:') || lowerText.includes('practice')) {
+      return 'practice';
+    } else if (lowerText.includes('quiz') || lowerText.includes('test')) {
+      return 'assessment';
+    } else {
+      return 'explanation';
+    }
   }
 
   /**
@@ -264,23 +517,67 @@ Learning objectives: ${context.learningObjectives?.join(', ') || 'Flexible learn
    * Generate mock response when OpenAI is not available
    */
   private generateMockResponse(userInput: string, personality: AIPersonality): AIResponse {
+    const topic = userInput.toLowerCase();
+    
+    // Enhanced responses with voice + whiteboard teaching commands
+    if (topic.includes('math') || topic.includes('algebra') || topic.includes('equation')) {
+      return {
+        text: `Great question about mathematics! Let me clear the board and show you step by step. [CLEAR] [WRITE: "Solving Algebraic Equations" | position: "top" | size: "large" | color: "blue"] Now, when we have an equation like 2x + 5 = 15, I'll write this down... [FORMULA: "2x + 5 = 15" | position: "center" | size: "large"] Let me show you the steps: [STEPS: "Step 1: Subtract 5 from both sides", "Step 2: Divide by 2", "Step 3: x = 5" | layout: "vertical" | position: "left"] As you can see here, we isolated x step by step!`,
+        shouldDrawOnWhiteboard: true,
+        whiteboardActions: [
+          { type: 'clear', content: '', animation: { delay: 0, duration: 500 } },
+          { type: 'write', content: 'Solving Algebraic Equations', position: { x: 400, y: 100 }, style: { color: 'blue', size: 'large' }, animation: { delay: 1000, duration: 1000 } },
+          { type: 'formula', content: '2x + 5 = 15', position: { x: 400, y: 200 }, style: { color: 'red', size: 'large' }, animation: { delay: 2500, duration: 1000 } },
+          { type: 'steps', content: 'Step 1: Subtract 5 from both sides', position: { x: 200, y: 300 }, animation: { delay: 4000, duration: 1000 } },
+          { type: 'steps', content: 'Step 2: Divide by 2', position: { x: 200, y: 340 }, animation: { delay: 5000, duration: 1000 } },
+          { type: 'steps', content: 'Step 3: x = 5', position: { x: 200, y: 380 }, animation: { delay: 6000, duration: 1000 } }
+        ],
+        followUpQuestions: [
+          'Does this step-by-step approach make sense?',
+          'Would you like to try another equation?',
+          'Any questions about isolating variables?'
+        ],
+        relatedTopics: ['linear equations', 'solving for x', 'algebraic manipulation']
+      };
+    }
+
+    if (topic.includes('science') || topic.includes('physics') || topic.includes('chemistry')) {
+      return {
+        text: `Excellent science question! Let me start fresh and explain this with a diagram. [CLEAR] [WRITE: "${userInput}" | position: "top" | size: "large" | color: "blue"] Now, let me draw a diagram to illustrate this concept... [DIAGRAM: "scientific process" | description: "step-by-step illustration" | position: "center"] As you can see from this diagram, the process flows logically from one step to the next.`,
+        shouldDrawOnWhiteboard: true,
+        whiteboardActions: [
+          { type: 'clear', content: '', animation: { delay: 0, duration: 500 } },
+          { type: 'write', content: userInput, position: { x: 400, y: 100 }, style: { color: 'blue', size: 'large' }, animation: { delay: 1000, duration: 1000 } },
+          { type: 'diagram', content: 'Scientific Process Diagram', position: { x: 400, y: 300 }, animation: { delay: 3000, duration: 2000 } }
+        ],
+        followUpQuestions: [
+          'Does this diagram help clarify the concept?',
+          'Would you like me to explain any specific part?'
+        ],
+        relatedTopics: ['scientific method', 'observations', 'hypotheses']
+      };
+    }
+
+    // Default enhanced response
     const responses = {
-      patient: `I understand you're asking about "${userInput}". Let me explain this step by step in a way that's easy to follow. [DRAW: diagram] This concept is fundamental, and I want to make sure you grasp it completely before we move on.`,
-      energetic: `Great question about "${userInput}"! I'm excited to dive into this topic with you! [DRAW: formula] This is such an interesting area, and I think you'll find it really engaging once we break it down!`,
-      formal: `Your inquiry regarding "${userInput}" requires a systematic approach to ensure comprehensive understanding. [DRAW: text] Let us examine the fundamental principles that govern this concept.`,
-      casual: `Oh, you're curious about "${userInput}"! That's awesome - it's actually pretty cool once you get the hang of it. [DRAW: diagram] Let me show you how this works in a way that'll make sense.`
+      patient: `I understand you're asking about "${userInput}". Let me write this down and explain it step by step. [CLEAR] [WRITE: "${userInput}" | position: "top" | size: "medium" | color: "black"] This concept is fundamental, so let me break it down for you... [STEPS: "Understanding the basics", "Key principles", "Practical applications" | layout: "vertical"] As you can see here, we approach this systematically.`,
+      energetic: `Great question about "${userInput}"! I'm excited to dive into this with you! [CLEAR] [WRITE: "${userInput}" | position: "top" | size: "large" | color: "blue"] This is such an interesting topic! [DIAGRAM: "concept map" | description: "visual overview" | position: "center"] Let me show you why this is so fascinating!`,
+      formal: `Your inquiry regarding "${userInput}" requires systematic analysis. [CLEAR] [WRITE: "${userInput}" | position: "top" | size: "medium" | color: "black"] Let us examine this methodically: [STEPS: "Definition", "Analysis", "Conclusion" | layout: "vertical" | position: "left"] This structured approach ensures comprehensive understanding.`,
+      casual: `Oh, you're curious about "${userInput}"! That's awesome! [CLEAR] [WRITE: "${userInput}" | position: "top" | size: "medium" | color: "blue"] Let me show you how this works in a way that'll make total sense... [EXAMPLE: "real-world application" | position: "center"] See how relatable this is?`
     };
 
     return {
       text: responses[personality.teachingStyle],
       shouldDrawOnWhiteboard: true,
       whiteboardActions: [
-        { type: 'write', content: `Topic: ${userInput}` },
-        { type: 'diagram', content: 'Basic concept illustration' }
+        { type: 'clear', content: '', animation: { delay: 0, duration: 500 } },
+        { type: 'write', content: userInput, position: { x: 400, y: 100 }, style: { color: 'blue', size: 'medium' }, animation: { delay: 1000, duration: 1000 } },
+        { type: 'diagram', content: 'Concept illustration', position: { x: 400, y: 300 }, animation: { delay: 3000, duration: 2000 } }
       ],
       followUpQuestions: [
-        'Does this make sense so far?',
-        'Would you like me to explain any part in more detail?'
+        'Does this explanation make sense so far?',
+        'Would you like me to explain any part in more detail?',
+        'Any specific aspects you want to focus on?'
       ],
       relatedTopics: ['fundamentals', 'applications', 'examples']
     };

@@ -27,7 +27,7 @@ interface ChatMessage {
 
 export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
   // State management
-  const [connected, setConnected] = useState(false);
+  const [sessionJoined, setSessionJoined] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [whiteboardElements, setWhiteboardElements] = useState<WhiteboardElement[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -39,6 +39,10 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
   const [lastAIResponse, setLastAIResponse] = useState<string>('');
   const [voiceReplies, setVoiceReplies] = useState<any[]>([]);
 
+  // State for AI teacher visual feedback
+  const [isAIWriting, setIsAIWriting] = useState(false);
+  const [currentAIAction, setCurrentAIAction] = useState<string>('');
+
   // Refs
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const whiteboardRef = useRef<HTMLDivElement>(null);
@@ -47,12 +51,11 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
   const socketEvents = {
     onConnect: () => {
       console.log('🔌 Connected to real-time server');
-      setConnected(true);
     },
 
     onDisconnect: (reason: string) => {
       console.log('🔌 Disconnected from server:', reason);
-      setConnected(false);
+      setSessionJoined(false);
     },
 
     onError: (error: any) => {
@@ -75,17 +78,16 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
       };
       setChatMessages(prev => [...prev, aiMessage]);
 
-      // Handle whiteboard actions if any
-      if (data.whiteboardActions) {
-        const newElements = data.whiteboardActions.map((action: any, index: number) => ({
-          id: `ai-${Date.now()}-${index}`,
-          type: action.type,
-          x: action.position.x,
-          y: action.position.y,
-          content: action.content,
-          timestamp: new Date()
-        }));
-        setWhiteboardElements(prev => [...prev, ...newElements]);
+      // Auto-request voice for AI response (like a real teacher speaking)
+      if (data.response && isConnected) {
+        console.log('🎤 Auto-requesting voice for AI response...');
+        requestVoiceReply(sessionId, data.response, 'female');
+      }
+
+      // Handle whiteboard actions with animation (like a real teacher writing/drawing)
+      if (data.whiteboardActions && data.whiteboardActions.length > 0) {
+        console.log('🎨 Processing whiteboard actions:', data.whiteboardActions);
+        processWhiteboardActions(data.whiteboardActions);
       }
     },
 
@@ -153,11 +155,23 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
 
     onSessionJoined: (data: any) => {
       console.log('🏠 Session joined:', data);
+      setSessionJoined(true);
       setConnectedUsers(data.connectedUsers || []);
       
       if (data.whiteboardState?.elements) {
         setWhiteboardElements(data.whiteboardState.elements);
       }
+      
+      // Add welcome message
+      const welcomeMessage: ChatMessage = {
+        id: `welcome-${Date.now()}`,
+        userId: 'system',
+        userName: 'System',
+        message: `Welcome to session ${sessionId}! You can now chat and collaborate.`,
+        type: 'system',
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, welcomeMessage]);
     },
 
     onUserJoinedSession: (data: any) => {
@@ -220,11 +234,15 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
   }, [chatMessages]);
 
   // Connect and join session
-  const handleConnect = () => {
-    connect();
-    setTimeout(() => {
-      joinSession(sessionId);
-    }, 1000);
+  const handleConnect = async () => {
+    if (!isConnected) {
+      connect();
+      
+      // Join session after connection
+      setTimeout(() => {
+        joinSession(sessionId);
+      }, 1000);
+    }
   };
 
   // Disconnect and leave session
@@ -282,11 +300,84 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
     }
   };
 
-  // Request voice for last AI response
-  const handleRequestVoice = () => {
-    if (lastAIResponse && isConnected) {
-      requestVoiceReply(sessionId, lastAIResponse, 'female');
-    }
+  // Process whiteboard actions with animation (simulating real teacher writing/drawing)
+  const processWhiteboardActions = (actions: any[]) => {
+    if (!actions || actions.length === 0) return;
+    
+    setIsAIWriting(true);
+    setCurrentAIAction('Preparing to teach...');
+    
+    actions.forEach((action, index) => {
+      const delay = action.animation?.delay || (index * 1500); // Default 1.5 seconds between actions
+      
+      setTimeout(() => {
+        console.log(`🎨 Executing whiteboard action: ${action.type} - ${action.content}`);
+        
+        // Update current action for visual feedback
+        setCurrentAIAction(
+          action.type === 'write' ? `Writing: ${action.content}` :
+          action.type === 'formula' ? `Writing formula: ${action.content}` :
+          action.type === 'diagram' ? `Drawing diagram: ${action.content}` :
+          action.type === 'steps' ? `Showing steps: ${action.content}` :
+          action.type === 'clear' ? 'Clearing whiteboard...' :
+          `Teaching: ${action.content}`
+        );
+        
+        // Create whiteboard element based on action type
+        const element: WhiteboardElement = {
+          id: `ai-action-${Date.now()}-${index}`,
+          type: action.type || 'text',
+          x: action.position?.x || 50 + (index * 20),
+          y: action.position?.y || 50 + (index * 30),
+          content: action.content || '',
+          timestamp: new Date()
+        };
+
+        // Handle different action types
+        switch (action.type) {
+          case 'clear':
+            console.log('🧹 AI Teacher is clearing the whiteboard...');
+            setWhiteboardElements([]);
+            break;
+          
+          case 'write':
+          case 'formula':
+          case 'steps':
+            console.log(`✍️ AI Teacher is writing: "${action.content}"`);
+            setWhiteboardElements(prev => [...prev, element]);
+            break;
+          
+          case 'diagram':
+          case 'example':
+            console.log(`🎨 AI Teacher is drawing: ${action.content}`);
+            setWhiteboardElements(prev => [...prev, {
+              ...element,
+              type: 'drawing',
+              content: `[${action.type.toUpperCase()}] ${action.content}`
+            }]);
+            break;
+          
+          default:
+            setWhiteboardElements(prev => [...prev, element]);
+        }
+
+        // Send whiteboard update to other users
+        if (isConnected) {
+          updateWhiteboard(sessionId, {
+            action: action.type === 'clear' ? 'clear' : 'add',
+            element: action.type !== 'clear' ? element : undefined
+          });
+        }
+
+        // Clear AI writing state after last action
+        if (index === actions.length - 1) {
+          setTimeout(() => {
+            setIsAIWriting(false);
+            setCurrentAIAction('');
+          }, 1000);
+        }
+      }, delay);
+    });
   };
 
   return (
@@ -300,10 +391,15 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
               <span className="font-medium">
-                {connected ? '🔌 Connected' : '🔌 Disconnected'}
+                {isConnected ? '🔌 Connected' : '🔌 Disconnected'}
               </span>
+              {sessionJoined && (
+                <span className="text-sm text-green-600">
+                  ✅ Session joined
+                </span>
+              )}
               <span className="text-sm text-gray-600">
                 Session: {sessionId}
               </span>
@@ -312,15 +408,15 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
             <div className="space-x-2">
               <Button
                 onClick={handleConnect}
-                disabled={connected}
-                variant={connected ? 'outline' : 'primary'}
+                disabled={isConnected}
+                variant={isConnected ? 'outline' : 'primary'}
                 size="sm"
               >
-                Connect
+                {isConnected ? 'Connected' : 'Connect'}
               </Button>
               <Button
                 onClick={handleDisconnect}
-                disabled={!connected}
+                disabled={!isConnected}
                 variant="outline"
                 size="sm"
               >
@@ -382,11 +478,11 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
                 onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Type a message..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={!connected}
+                disabled={!isConnected}
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={!connected || !currentMessage.trim()}
+                disabled={!isConnected || !currentMessage.trim()}
                 size="sm"
               >
                 Send
@@ -396,14 +492,28 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
 
           {/* AI Interaction Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold mb-4">🤖 AI Real-Time Interaction</h3>
+            <h3 className="text-lg font-semibold mb-4">🤖 AI Real-Time Teaching</h3>
             
+            {/* Enhanced Teaching Info */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <h4 className="font-semibold text-blue-800 mb-2">🎓 Interactive AI Teacher</h4>
+              <p className="text-sm text-blue-700 mb-2">
+                Ask any question and experience <strong>voice + visual teaching</strong>! The AI will:
+              </p>
+              <ul className="text-xs text-blue-600 space-y-1">
+                <li>• 🗣️ <strong>Speak</strong> your answer aloud (auto voice generation)</li>
+                <li>• ✍️ <strong>Write</strong> key points on the whiteboard while talking</li>
+                <li>• 🎨 <strong>Draw</strong> diagrams, formulas, and step-by-step explanations</li>
+                <li>• 📚 <strong>Teach</strong> like a real teacher with visual aids</li>
+              </ul>
+            </div>
+
             {/* AI Thinking Indicator */}
             {isAIThinking && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center space-x-2">
                   <LoadingSpinner size="sm" />
-                  <span className="text-blue-800">AI is thinking about your question...</span>
+                  <span className="text-blue-800">AI Teacher is preparing your lesson...</span>
                 </div>
               </div>
             )}
@@ -411,39 +521,72 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
             {/* Last AI Response */}
             {lastAIResponse && (
               <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-blue-800 mb-2">Latest AI Response:</h4>
+                <h4 className="font-medium text-blue-800 mb-2">Latest AI Teaching Response:</h4>
                 <p className="text-sm text-blue-700">{lastAIResponse}</p>
-                <Button
-                  onClick={handleRequestVoice}
-                  disabled={!connected}
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                >
-                  🎤 Generate Voice
-                </Button>
+                <div className="text-xs text-blue-600 mt-2">
+                  <span className="bg-blue-100 px-2 py-1 rounded">🎤 Voice automatically generated</span>
+                  {lastAIResponse.includes('[') && <span className="bg-purple-100 px-2 py-1 rounded ml-2">� Whiteboard updated</span>}
+                </div>
               </div>
             )}
 
             {/* AI Question Input */}
-            <div className="space-y-4">
+            <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-blue-50">
+              <label className="block text-sm font-medium text-blue-800 mb-2">
+                🎓 Ask your AI Teacher anything!
+              </label>
               <textarea
                 value={aiQuestion}
                 onChange={(e) => setAiQuestion(e.target.value)}
-                placeholder="Ask the AI a question..."
+                placeholder="e.g., 'Explain photosynthesis step by step', 'Solve 2x + 5 = 15 and show me the steps', 'What is machine learning and how does it work?'"
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={!connected}
+                className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={!isConnected}
               />
               
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 mt-3">
                 <Button
                   onClick={handleAskAI}
-                  disabled={!connected || !aiQuestion.trim() || isAIThinking}
-                  className="flex-1"
+                  disabled={!isConnected || !aiQuestion.trim() || isAIThinking}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
                 >
-                  {isAIThinking ? <LoadingSpinner size="sm" /> : 'Ask AI'}
+                  {isAIThinking ? (
+                    <>
+                      <LoadingSpinner size="sm" /> 
+                      <span className="ml-2">AI Teaching...</span>
+                    </>
+                  ) : (
+                    <>
+                      🎓 Ask AI Teacher
+                    </>
+                  )}
                 </Button>
+              </div>
+              
+              {/* Quick Examples */}
+              <div className="mt-3 text-xs text-blue-600">
+                <span className="font-medium">Try these:</span> 
+                <button 
+                  onClick={() => setAiQuestion('Explain how photosynthesis works with diagrams')}
+                  className="ml-2 hover:underline"
+                  disabled={!isConnected}
+                >
+                  Biology
+                </button>
+                <button 
+                  onClick={() => setAiQuestion('Solve the equation 3x + 7 = 22 step by step')}
+                  className="ml-2 hover:underline"
+                  disabled={!isConnected}
+                >
+                  Math
+                </button>
+                <button 
+                  onClick={() => setAiQuestion('What is machine learning? Show me examples')}
+                  className="ml-2 hover:underline"
+                  disabled={!isConnected}
+                >
+                  Technology
+                </button>
               </div>
             </div>
 
@@ -468,7 +611,17 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
 
           {/* Whiteboard Section */}
           <div className="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
-            <h3 className="text-lg font-semibold mb-4">🎨 Real-Time Whiteboard</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">🎨 Real-Time Whiteboard</h3>
+              {isAIWriting && (
+                <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-blue-700 font-medium">
+                    🤖 AI Teacher: {currentAIAction}
+                  </span>
+                </div>
+              )}
+            </div>
             
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-gray-600">
@@ -476,7 +629,7 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
               </p>
               <Button
                 onClick={handleAddWhiteboardElement}
-                disabled={!connected}
+                disabled={!isConnected}
                 size="sm"
               >
                 Add Element
@@ -490,20 +643,49 @@ export const RealTimeDemo: React.FC<RealTimeDemoProps> = ({ sessionId }) => {
               className="relative h-96 border border-gray-300 rounded-lg bg-white overflow-hidden cursor-crosshair"
             >
               {/* Whiteboard Elements */}
-              {whiteboardElements.map((element) => (
-                <div
-                  key={element.id}
-                  style={{
-                    position: 'absolute',
-                    left: element.x,
-                    top: element.y,
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                  className="bg-yellow-200 px-2 py-1 rounded text-xs border border-yellow-400"
-                >
-                  {element.content || element.type}
-                </div>
-              ))}
+              {whiteboardElements.map((element) => {
+                // Enhanced styling based on element type
+                const getElementStyle = (type: string) => {
+                  switch (type) {
+                    case 'write':
+                      return 'bg-blue-100 border-blue-300 text-blue-800 font-medium';
+                    case 'formula':
+                      return 'bg-red-100 border-red-300 text-red-800 font-mono text-lg';
+                    case 'diagram':
+                    case 'drawing':
+                      return 'bg-green-100 border-green-300 text-green-800 italic';
+                    case 'steps':
+                      return 'bg-purple-100 border-purple-300 text-purple-800 text-sm';
+                    case 'example':
+                      return 'bg-orange-100 border-orange-300 text-orange-800';
+                    default:
+                      return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+                  }
+                };
+
+                return (
+                  <div
+                    key={element.id}
+                    style={{
+                      position: 'absolute',
+                      left: element.x,
+                      top: element.y,
+                      transform: 'translate(-50%, -50%)',
+                      maxWidth: '250px'
+                    }}
+                    className={`px-3 py-2 rounded-lg text-sm border-2 shadow-sm transition-all duration-300 ${getElementStyle(element.type)}`}
+                  >
+                    {/* Type indicator */}
+                    {element.type === 'formula' && <span className="text-xs bg-red-200 px-1 rounded mr-1">📐</span>}
+                    {element.type === 'diagram' && <span className="text-xs bg-green-200 px-1 rounded mr-1">🎨</span>}
+                    {element.type === 'steps' && <span className="text-xs bg-purple-200 px-1 rounded mr-1">📋</span>}
+                    {element.type === 'example' && <span className="text-xs bg-orange-200 px-1 rounded mr-1">💡</span>}
+                    {element.type === 'write' && <span className="text-xs bg-blue-200 px-1 rounded mr-1">✍️</span>}
+                    
+                    {element.content || element.type}
+                  </div>
+                );
+              })}
 
               {/* Cursor Positions */}
               {Object.entries(cursorPositions).map(([userId, cursor]) => (

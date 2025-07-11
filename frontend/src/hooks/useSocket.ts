@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { getServerUrl } from '../utils/environment';
 
@@ -131,6 +131,7 @@ interface VoiceReplyEvent {
 
 export const useSocket = (events: SocketEvents, options: UseSocketOptions = {}) => {
   const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const {
     serverUrl = getServerUrl(),
     autoConnect = true,
@@ -165,16 +166,19 @@ export const useSocket = (events: SocketEvents, options: UseSocketOptions = {}) 
     // Connection events
     socketRef.current.on('connect', () => {
       console.log('🔌 Socket connected:', socketRef.current?.id);
+      setIsConnected(true);
       events.onConnect?.();
     });
 
     socketRef.current.on('disconnect', (reason) => {
       console.log('🔌 Socket disconnected:', reason);
+      setIsConnected(false);
       events.onDisconnect?.(reason);
     });
 
     socketRef.current.on('connect_error', (error) => {
       console.error('🔌 Socket connection error:', error);
+      setIsConnected(false);
       events.onError?.(error);
     });
 
@@ -213,6 +217,7 @@ export const useSocket = (events: SocketEvents, options: UseSocketOptions = {}) 
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
+      setIsConnected(false);
     }
   }, []);
 
@@ -311,7 +316,7 @@ export const useSocket = (events: SocketEvents, options: UseSocketOptions = {}) 
     stopAITyping,
     requestVoiceReply,
     sendUserActivity,
-    isConnected: socketRef.current?.connected || false
+    isConnected
   };
 };
 

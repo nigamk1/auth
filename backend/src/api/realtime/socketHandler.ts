@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { logger } from '../../utils/logger';
 import { AITeacherService } from '../../utils/aiTeacher';
 import { VoiceService } from '../../utils/voice';
@@ -139,6 +140,7 @@ export class RealTimeSocketHandler {
 
       // Voice events
       socket.on('voice-request', (data) => this.handleVoiceRequest(socket, data));
+      socket.on('voice-transcription', (data) => this.handleVoiceTranscription(socket, data));
 
       // Presence events
       socket.on('user-activity', (data) => this.handleUserActivity(socket, data));
@@ -178,11 +180,49 @@ export class RealTimeSocketHandler {
     try {
       const { sessionId, language = 'en', voiceSettings } = data;
 
-      // Verify session access
-      const session = await Session.findOne({
+      // Try to find existing session
+      let session = await Session.findOne({
         _id: sessionId,
         userId: socket.userId
       });
+
+      // If session doesn't exist and this looks like a demo session, create a temporary one
+      if (!session && sessionId.startsWith('session_')) {
+        logger.info(`🔧 Creating temporary demo session: ${sessionId}`);
+        
+        // Create a valid ObjectId for demo session
+        const tempId = new mongoose.Types.ObjectId();
+        
+        session = new Session({
+          _id: tempId,
+          userId: socket.userId,
+          title: `Real-time Demo Session`,
+          subject: 'Real-time Collaboration Demo',
+          status: 'active',
+          startedAt: new Date(),
+          totalDuration: 0,
+          aiPersonality: {
+            name: 'Demo AI',
+            voice: 'alloy',
+            teachingStyle: 'casual',
+            language: language
+          },
+          metadata: {
+            sessionType: 'practice',
+            difficulty: 'beginner',
+            tags: ['demo', 'realtime'],
+            language: language
+          }
+        });
+
+        try {
+          await session.save();
+          logger.info(`✅ Temporary demo session created: ${tempId}`);
+        } catch (saveError) {
+          logger.warn(`⚠️ Could not save temporary session, proceeding anyway: ${saveError}`);
+          // Continue without saving for demo purposes
+        }
+      }
 
       if (!session) {
         socket.emit('error', { message: 'Session not found or access denied' });
@@ -579,6 +619,122 @@ export class RealTimeSocketHandler {
     } catch (error) {
       logger.error('Error handling voice request:', error);
       socket.emit('error', { message: 'Failed to generate voice reply' });
+    }
+  }
+
+  private async handleVoiceTranscription(socket: AuthenticatedSocket, data: any) {
+    try {
+      const { sessionId, audioData, audioFormat, language } = data;
+      const userId = socket.userId;
+
+      logger.info(`🎤 Processing voice transcription for session ${sessionId}`);
+
+      if (!audioData || !sessionId) {
+        socket.emit('voice-error', {
+          sessionId,
+          message: 'Invalid audio data or session ID',
+          code: 'INVALID_DATA'
+        });
+        return;
+      }
+
+      // Convert ArrayBuffer to Buffer
+      const audioBuffer = Buffer.from(audioData);
+
+      // Transcribe audio using voice service
+      const transcriptionResult = await this.voiceService.speechToText(audioBuffer, {
+        language: language?.split('-')[0] as 'en' | 'hi' | 'hinglish' || 'en',
+        sampleRate: 16000,
+        encoding: audioFormat || 'webm'
+      });
+
+      // Send transcription result back to client
+      socket.emit('transcription-result', {
+        sessionId,
+        text: transcriptionResult.text,
+        confidence: transcriptionResult.confidence || 0.8
+      });
+
+      logger.info(`✅ Transcription completed: "${transcriptionResult.text}"`);
+
+      // If we have transcribed text, process it with AI teacher
+      if (transcriptionResult.text && transcriptionResult.text.trim()) {
+        try {
+          // Get AI response using the existing AI teacher service
+          const aiResponse = await this.aiTeacher.generateResponse(
+            transcriptionResult.text,
+            {
+              name: 'AI Teacher',
+              voice: 'friendly',
+              teachingStyle: 'patient',
+              language: language?.split('-')[0] as 'en' | 'hi' | 'hinglish' || 'en'
+            },
+            {
+              sessionId,
+              previousMessages: [],
+              currentTopic: 'General Learning',
+              learningObjectives: [],
+              studentLevel: 'beginner',
+              language: language?.split('-')[0] as 'en' | 'hi' | 'hinglish' || 'en'
+            }
+          );
+
+          // Send AI response back to client
+          socket.emit('ai-audio-response', {
+            sessionId,
+            response: aiResponse.text,
+            text: aiResponse.text,
+            type: 'voice-answer',
+            whiteboardActions: aiResponse.whiteboardActions || [],
+            followUpQuestions: aiResponse.followUpQuestions || [],
+            timestamp: new Date()
+          });
+
+          // Generate TTS for AI response if voice is enabled
+          const voiceSettings = (socket as any).voiceSettings || {};
+          if (voiceSettings.ttsVoice !== 'text-only') {
+            try {
+              const ttsResult = await this.voiceService.textToSpeech(aiResponse.text, {
+                language: language?.split('-')[0] as 'en' | 'hi' | 'hinglish' || 'en',
+                voice: voiceSettings.ttsVoice,
+                speed: 1.0
+              });
+
+              // Send audio response - add audioBuffer if available
+              socket.emit('ai-audio-response', {
+                sessionId,
+                audioUrl: `/api/voice/temp-audio-${Date.now()}.mp3`,
+                audioBuffer: ttsResult.audioBuffer, // Add audio buffer for direct playback
+                audioFormat: 'audio/mp3',
+                text: aiResponse.text,
+                duration: ttsResult.duration || Math.floor(aiResponse.text.length * 0.1),
+                timestamp: new Date()
+              });
+
+              logger.info(`🔊 Voice response generated for session ${sessionId}`);
+            } catch (ttsError) {
+              logger.warn('TTS generation failed:', ttsError);
+              // Continue without audio - text response already sent
+            }
+          }
+
+        } catch (aiError) {
+          logger.error('AI processing failed:', aiError);
+          socket.emit('ai-error', {
+            sessionId,
+            message: 'Failed to process your question with AI',
+            code: 'AI_PROCESSING_ERROR'
+          });
+        }
+      }
+
+    } catch (error) {
+      logger.error('Error handling voice transcription:', error);
+      socket.emit('voice-error', {
+        sessionId: data.sessionId,
+        message: 'Failed to process voice message',
+        code: 'TRANSCRIPTION_ERROR'
+      });
     }
   }
 

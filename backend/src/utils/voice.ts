@@ -253,9 +253,31 @@ export class VoiceService {
     try {
       const voiceConfig = VOICE_CONFIGS[options.language];
       
+      // Map old Google Cloud voices to OpenAI voices
+      const voiceMapping: { [key: string]: string } = {
+        'en-US-Standard-A': 'alloy',
+        'en-US-Standard-B': 'echo',
+        'en-US-Standard-C': 'fable',
+        'en-US-Standard-D': 'onyx',
+        'en-US-Standard-E': 'nova',
+        'en-US-Standard-F': 'shimmer',
+        'hi-IN-Standard-A': 'onyx',
+        'hi-IN-Standard-B': 'nova',
+        'hi-IN-Standard-C': 'alloy',
+      };
+      
+      // Use mapped voice or default to config voice
+      const mappedVoice = voiceMapping[options.voice] || voiceConfig.ttsVoice;
+      
+      // Validate voice is one of OpenAI's supported voices
+      const validVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+      const finalVoice = validVoices.includes(mappedVoice) ? mappedVoice : voiceConfig.ttsVoice;
+      
+      logger.info(`Using OpenAI TTS voice: ${finalVoice} for language: ${options.language}`);
+      
       const mp3 = await this.openai!.audio.speech.create({
         model: voiceConfig.openaiModel,
-        voice: options.voice as any,
+        voice: finalVoice as any,
         input: text,
         speed: options.speed,
       });

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Stage, Layer, Line, Rect, Circle, Text, Arrow } from 'react-konva';
+import { Socket } from 'socket.io-client';
 import { 
   Pen, 
   Square, 
@@ -21,6 +22,7 @@ import type { WhiteboardElement, WhiteboardState } from '../../types/ai-teacher'
 
 interface AiWhiteboardProps {
   sessionId?: string;
+  socket?: Socket | null;
   width?: number;
   height?: number;
   className?: string;
@@ -40,6 +42,7 @@ interface DrawingElement extends Omit<WhiteboardElement, 'id' | 'timestamp' | 'a
 
 export const AiWhiteboard: React.FC<AiWhiteboardProps> = ({
   sessionId = 'default',
+  socket,
   width = 1200,
   height = 800,
   className = '',
@@ -389,6 +392,49 @@ export const AiWhiteboard: React.FC<AiWhiteboardProps> = ({
       (window as any).addAIElement = addAIElement;
     }
   }, [addAIElement]);
+
+  // Listen for socket whiteboard updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleWhiteboardUpdate = (data: any) => {
+      console.log('Received whiteboard update:', data);
+      
+      if (data.sessionId === sessionId) {
+        switch (data.type) {
+          case 'element-added':
+            if (data.element) {
+              const newElement: DrawingElement = {
+                ...data.element,
+                isComplete: true
+              };
+              setElements(prev => {
+                // Avoid duplicates
+                if (prev.find(el => el.id === newElement.id)) {
+                  return prev;
+                }
+                return [...prev, newElement];
+              });
+            }
+            break;
+          case 'state-changed':
+            if (data.state && data.state.elements) {
+              setElements(data.state.elements.map((el: any) => ({ ...el, isComplete: true })));
+            }
+            break;
+          case 'clear':
+            setElements([]);
+            break;
+        }
+      }
+    };
+
+    socket.on('whiteboardUpdate', handleWhiteboardUpdate);
+
+    return () => {
+      socket.off('whiteboardUpdate', handleWhiteboardUpdate);
+    };
+  }, [socket, sessionId]);
 
   // Render different shape types
   const renderElement = (element: DrawingElement) => {

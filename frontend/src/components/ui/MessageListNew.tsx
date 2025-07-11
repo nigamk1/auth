@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, MoreHorizontal } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import Button from '../ui/Button';
-import Pagination from '../ui/Pagination';
 
 interface Message {
   id: string;
@@ -36,7 +35,6 @@ export const MessageList: React.FC<MessageListProps> = ({
   disabled = false
 }) => {
   const [processedMessages, setProcessedMessages] = useState<TruncatedMessage[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [messageInput, setMessageInput] = useState('');
 
   // Process messages for truncation and pagination
@@ -82,31 +80,6 @@ export const MessageList: React.FC<MessageListProps> = ({
     setProcessedMessages(processed);
   }, [messages, maxMessageLength]);
 
-  const toggleMessageExpansion = (messageId: string) => {
-    setProcessedMessages(prev =>
-      prev.map(msg =>
-        msg.id === messageId
-          ? { ...msg, isExpanded: !msg.isExpanded }
-          : msg
-      )
-    );
-  };
-
-  const changeMessagePage = (messageId: string, newPage: number) => {
-    setProcessedMessages(prev =>
-      prev.map(msg =>
-        msg.id === messageId
-          ? { ...msg, currentPage: newPage }
-          : msg
-      )
-    );
-  };
-
-  const totalPages = Math.ceil(processedMessages.length / messagesPerPage);
-  const startIndex = (currentPage - 1) * messagesPerPage;
-  const endIndex = startIndex + messagesPerPage;
-  const currentMessages = processedMessages.slice(startIndex, endIndex);
-
   const handleSendMessage = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (messageInput.trim() && onSendMessage && !disabled) {
@@ -122,13 +95,22 @@ export const MessageList: React.FC<MessageListProps> = ({
     }
   };
 
+  const toggleMessageExpansion = (messageId: string) => {
+    setProcessedMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId
+          ? { ...msg, isExpanded: !msg.isExpanded }
+          : msg
+      )
+    );
+  };
+
   const renderMessage = (message: TruncatedMessage) => {
     const isLongMessage = message.pages.length > 1;
-    const currentContent = message.isExpanded 
-      ? message.pages[message.currentPage - 1] || message.pages[0]
-      : message.pages[0].substring(0, maxMessageLength);
-    
-    const isTruncated = !message.isExpanded && message.content.length > maxMessageLength;
+    const currentContent = message.isExpanded
+      ? message.pages[message.currentPage - 1]
+      : message.pages[0];
+    const isTruncated = !message.isExpanded && isLongMessage;
 
     return (
       <div
@@ -201,43 +183,34 @@ export const MessageList: React.FC<MessageListProps> = ({
                 </>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-                  >
-                    <ChevronUp className="w-3 h-3" />
-                  </Button>
-                  <span className="text-xs opacity-75">
-                    {message.currentPage}/{message.pages.length}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => changeMessagePage(message.id, Math.min(message.pages.length, message.currentPage + 1))}
-                    disabled={message.currentPage === message.pages.length}
-                    className="p-1 text-xs"
-                  >
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-              
-              {/* Expand/Collapse button for long messages */}
-              {isLongMessage && (
+            
+            {/* Expand/Collapse Button for Long Messages */}
+            {isLongMessage && !message.metadata?.isThinking && (
+              <div className="mt-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => toggleMessageExpansion(message.id)}
-                  className="p-1 text-xs"
+                  className={`text-xs px-2 py-1 ${
+                    message.speaker === 'user'
+                      ? 'border-blue-300 text-blue-100 hover:bg-blue-500'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  }`}
                 >
                   {message.isExpanded ? (
-                    <ChevronUp className="w-3 h-3" />
+                    <>
+                      <ChevronUp className="w-3 h-3 mr-1" />
+                      Show Less
+                    </>
                   ) : (
-                    <MoreHorizontal className="w-3 h-3" />
+                    <>
+                      <ChevronDown className="w-3 h-3 mr-1" />
+                      Show More
+                    </>
                   )}
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -248,7 +221,7 @@ export const MessageList: React.FC<MessageListProps> = ({
     <div className={`flex flex-col h-full bg-gray-50 ${className}`}>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {currentMessages.length === 0 ? (
+        {processedMessages.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
               <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,7 +233,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {currentMessages.map(renderMessage)}
+            {processedMessages.map(renderMessage)}
           </div>
         )}
       </div>
@@ -300,18 +273,6 @@ export const MessageList: React.FC<MessageListProps> = ({
               </svg>
             </Button>
           </form>
-        </div>
-      )}
-      
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="border-t bg-white p-3">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            className="justify-center"
-          />
         </div>
       )}
     </div>

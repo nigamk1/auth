@@ -33,7 +33,7 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     name: 'English',
     displayName: 'English',
     flag: '🇺🇸',
-    ttsVoice: 'en-US-Standard-A',
+    ttsVoice: 'alloy', // OpenAI voice
     sttLanguageCode: 'en-US'
   },
   {
@@ -41,7 +41,7 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     name: 'Hindi',
     displayName: 'हिंदी',
     flag: '🇮🇳',
-    ttsVoice: 'hi-IN-Standard-A',
+    ttsVoice: 'onyx', // OpenAI voice - deeper voice for Hindi
     sttLanguageCode: 'hi-IN'
   },
   {
@@ -49,7 +49,7 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     name: 'Hinglish',
     displayName: 'Hinglish',
     flag: '🇮🇳',
-    ttsVoice: 'en-IN-Standard-A',
+    ttsVoice: 'nova', // OpenAI voice - natural voice for Hinglish
     sttLanguageCode: 'en-IN'
   }
 ];

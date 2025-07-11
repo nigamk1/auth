@@ -43,7 +43,7 @@ export const createSession = async (req: AuthenticatedRequest, res: Response): P
       subject,
       aiPersonality: {
         name: aiPersonality?.name || 'Assistant',
-        voice: aiPersonality?.voice || 'en-US-Standard-A',
+        voice: aiPersonality?.voice || 'alloy',
         teachingStyle: aiPersonality?.teachingStyle || 'patient',
         language: aiPersonality?.language || 'en'
       },
