@@ -46,6 +46,7 @@ export const AITeacherPage: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'whiteboard' | 'conversation'>('whiteboard');
   
   const { currentLanguage, translate, getVoiceSettings } = useLanguage();
   const socketRef = useRef<Socket | null>(null);
@@ -532,149 +533,56 @@ export const AITeacherPage: React.FC = () => {
           ) : (
             /* Learning Interface */
             <div className="space-y-6">
-              {/* Mobile Layout */}
+              {/* Mobile Layout with Tabs */}
               <div className="block xl:hidden space-y-6">
-                {/* Voice Controls Card */}
+                {/* Tab Navigation */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                      </svg>
-                      <h3 className="text-lg font-bold text-white">Voice Controls</h3>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <VoiceHandler
-                      socket={socketRef.current}
-                      sessionId={currentSessionId}
-                      isConnected={isConnected}
-                      onTranscriptionReceived={handleVoiceTranscription}
-                      onAIResponseReceived={handleAIResponse}
-                      disabled={!session || !isConnected}
-                    />
-                  </div>
-                </div>
-
-                {/* Conversation Card */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <h3 className="text-lg font-bold text-white">
-                          Conversation with {session?.aiPersonality?.name || 'AI Teacher'}
-                        </h3>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-2 h-2 bg-white rounded-full opacity-60"></div>
-                        <div className="w-2 h-2 bg-white rounded-full opacity-80"></div>
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="h-96">
-                    <MessageList
-                      messages={messages}
-                      maxMessageLength={200}
-                      messagesPerPage={6}
-                      className="h-full"
-                      onSendMessage={sendTextMessage}
-                      disabled={!isConnected || !currentSessionId}
-                    />
-                  </div>
-                </div>
-
-                {/* Whiteboard Card */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                  <div className="bg-gradient-to-r from-purple-600 to-violet-600 px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex">
+                    <button
+                      onClick={() => setActiveTab('whiteboard')}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        activeTab === 'whiteboard'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
-                        <h3 className="text-lg font-bold text-white">Interactive Whiteboard</h3>
+                        <span>Whiteboard + Voice</span>
                       </div>
-                      <div className="flex items-center space-x-2 text-white text-sm">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span>Real-time</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('conversation')}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        activeTab === 'conversation'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>AI Conversation</span>
                       </div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4">
-                    <AiWhiteboard
-                      sessionId={currentSessionId || 'default'}
-                      socket={socketRef.current}
-                      width={Math.min(window.innerWidth - 100, 800)}
-                      height={400}
-                      className="border border-gray-200 rounded-xl shadow-inner"
-                      onElementAdded={(element) => {
-                        console.log('Element added:', element);
-                        if (socketRef.current && currentSessionId) {
-                          socketRef.current.emit('whiteboard-update', {
-                            sessionId: currentSessionId,
-                            type: 'element-added',
-                            element
-                          });
-                        }
-                      }}
-                      onStateChanged={(state) => {
-                        console.log('Whiteboard state changed:', state);
-                        if (socketRef.current && currentSessionId) {
-                          socketRef.current.emit('whiteboard-update', {
-                            sessionId: currentSessionId,
-                            type: 'state-changed',
-                            state
-                          });
-                        }
-                      }}
-                    />
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Desktop Layout */}
-              <div className="hidden xl:block">
-                <div className="grid grid-cols-12 gap-6 min-h-[600px]">
-                  {/* Voice Controls Panel */}
-                  <div className="col-span-3">
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 h-full">
-                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-2xl px-6 py-4">
-                        <div className="flex items-center space-x-3">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                          </svg>
-                          <h3 className="text-lg font-bold text-white">Voice Controls</h3>
-                        </div>
-                      </div>
-                      <div className="p-6">
-                        <VoiceHandler
-                          socket={socketRef.current}
-                          sessionId={currentSessionId}
-                          isConnected={isConnected}
-                          onTranscriptionReceived={handleVoiceTranscription}
-                          onAIResponseReceived={handleAIResponse}
-                          disabled={!session || !isConnected}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Conversation Panel */}
-                  <div className="col-span-4">
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 h-full flex flex-col">
-                      <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-t-2xl px-6 py-4 flex-shrink-0">
+                {/* Tab Content */}
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                  {activeTab === 'conversation' && (
+                    <>
+                      <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                             </svg>
                             <h3 className="text-lg font-bold text-white">
-                              {session?.aiPersonality?.name || 'AI Teacher'}
+                              Conversation with {session?.aiPersonality?.name || 'AI Teacher'}
                             </h3>
                           </div>
                           <div className="flex items-center space-x-1">
@@ -685,29 +593,28 @@ export const AITeacherPage: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="flex-1 min-h-0">
+                      <div className="h-96">
                         <MessageList
                           messages={messages}
-                          maxMessageLength={300}
-                          messagesPerPage={8}
+                          maxMessageLength={200}
+                          messagesPerPage={6}
                           className="h-full"
                           onSendMessage={sendTextMessage}
                           disabled={!isConnected || !currentSessionId}
                         />
                       </div>
-                    </div>
-                  </div>
+                    </>
+                  )}
 
-                  {/* Whiteboard Panel */}
-                  <div className="col-span-5">
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 h-full flex flex-col">
+                  {activeTab === 'whiteboard' && (
+                    <div className="flex flex-col">
                       <div className="bg-gradient-to-r from-purple-600 to-violet-600 rounded-t-2xl px-6 py-4 flex-shrink-0">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
-                            <h3 className="text-lg font-bold text-white">Interactive Whiteboard</h3>
+                            <h3 className="text-lg font-bold text-white">Interactive Whiteboard + Voice</h3>
                           </div>
                           <div className="flex items-center space-x-2 text-white text-sm">
                             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -720,9 +627,9 @@ export const AITeacherPage: React.FC = () => {
                         <AiWhiteboard
                           sessionId={currentSessionId || 'default'}
                           socket={socketRef.current}
-                          width={500}
-                          height={500}
-                          className="border border-gray-200 rounded-xl shadow-inner w-full h-full"
+                          width={Math.min(window.innerWidth - 100, 800)}
+                          height={350}
+                          className="border border-gray-200 rounded-xl shadow-inner"
                           onElementAdded={(element) => {
                             console.log('Element added:', element);
                             if (socketRef.current && currentSessionId) {
@@ -745,7 +652,234 @@ export const AITeacherPage: React.FC = () => {
                           }}
                         />
                       </div>
+
+                      {/* Voice Assistant Controls - Bottom Section */}
+                      <div className="flex-shrink-0 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                        <div className="px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                              </svg>
+                              <span className="text-sm font-medium text-gray-700">Voice Assistant</span>
+                              <div className={`flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                isConnected 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                <div className={`w-1 h-1 rounded-full ${
+                                  isConnected ? 'bg-green-500' : 'bg-red-500'
+                                }`} />
+                                <span>{isConnected ? 'Ready' : 'Offline'}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Voice Controls Container */}
+                          <div className="mt-3">
+                            <VoiceHandler
+                              socket={socketRef.current}
+                              sessionId={currentSessionId}
+                              isConnected={isConnected}
+                              onTranscriptionReceived={handleVoiceTranscription}
+                              onAIResponseReceived={handleAIResponse}
+                              disabled={!session || !isConnected}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                  )}
+
+                </div>
+              </div>
+
+              {/* Desktop Layout with Tabs */}
+              <div className="hidden xl:block">
+                <div className="space-y-6">
+                  {/* Tab Navigation */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="flex">
+                      <button
+                        onClick={() => setActiveTab('whiteboard')}
+                        className={`flex-1 px-6 py-4 text-base font-medium transition-colors ${
+                          activeTab === 'whiteboard'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center space-x-3">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                          <span>Interactive Whiteboard</span>
+                          <div className="flex items-center space-x-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                            <span className="text-sm">+ Voice</span>
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('conversation')}
+                        className={`flex-1 px-6 py-4 text-base font-medium transition-colors ${
+                          activeTab === 'conversation'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center space-x-3">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span>AI Conversation</span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-200">
+                    {activeTab === 'whiteboard' && (
+                      <div className="flex flex-col">
+                        <div className="bg-gradient-to-r from-purple-600 to-violet-600 rounded-t-2xl px-6 py-4 flex-shrink-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                              <h3 className="text-lg font-bold text-white">Interactive Learning Space</h3>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                              {/* Voice Status in Header */}
+                              <div className="flex items-center space-x-2">
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                                <span className="text-sm text-white">Voice</span>
+                                <div className={`w-2 h-2 rounded-full ${
+                                  isConnected ? 'bg-green-400' : 'bg-red-400'
+                                }`} />
+                              </div>
+                              <div className="flex items-center space-x-2 text-white text-sm">
+                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                <span>Real-time</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Whiteboard Area */}
+                        <div className="flex-1 p-6">
+                          <AiWhiteboard
+                            sessionId={currentSessionId || 'default'}
+                            socket={socketRef.current}
+                            width={1100}
+                            height={500}
+                            className="border border-gray-200 rounded-xl shadow-inner w-full"
+                            onElementAdded={(element) => {
+                              console.log('Element added:', element);
+                              if (socketRef.current && currentSessionId) {
+                                socketRef.current.emit('whiteboard-update', {
+                                  sessionId: currentSessionId,
+                                  type: 'element-added',
+                                  element
+                                });
+                              }
+                            }}
+                            onStateChanged={(state) => {
+                              console.log('Whiteboard state changed:', state);
+                              if (socketRef.current && currentSessionId) {
+                                socketRef.current.emit('whiteboard-update', {
+                                  sessionId: currentSessionId,
+                                  type: 'state-changed',
+                                  state
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+
+                        {/* Voice Assistant Controls - Bottom Section */}
+                        <div className="flex-shrink-0 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                          <div className="px-6 py-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="flex items-center space-x-2">
+                                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                  </svg>
+                                  <span className="text-sm font-medium text-gray-700">Voice Assistant</span>
+                                </div>
+                                <div className={`flex items-center space-x-2 px-2 py-1 rounded-full text-xs font-medium ${
+                                  isConnected 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  <div className={`w-1.5 h-1.5 rounded-full ${
+                                    isConnected ? 'bg-green-500' : 'bg-red-500'
+                                  }`} />
+                                  <span>{isConnected ? 'Ready' : 'Offline'}</span>
+                                </div>
+                              </div>
+                              
+                              {/* Voice Controls Container */}
+                              <div className="flex-1 max-w-md mx-4">
+                                <VoiceHandler
+                                  socket={socketRef.current}
+                                  sessionId={currentSessionId}
+                                  isConnected={isConnected}
+                                  onTranscriptionReceived={handleVoiceTranscription}
+                                  onAIResponseReceived={handleAIResponse}
+                                  disabled={!session || !isConnected}
+                                />
+                              </div>
+
+                              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Hold to speak</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTab === 'conversation' && (
+                      <div className="flex flex-col">
+                        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-t-2xl px-6 py-4 flex-shrink-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              <h3 className="text-lg font-bold text-white">
+                                Conversation with {session?.aiPersonality?.name || 'AI Teacher'}
+                              </h3>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <div className="w-2 h-2 bg-white rounded-full opacity-60"></div>
+                              <div className="w-2 h-2 bg-white rounded-full opacity-80"></div>
+                              <div className="w-2 h-2 bg-white rounded-full"></div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="h-96">
+                          <MessageList
+                            messages={messages}
+                            maxMessageLength={500}
+                            messagesPerPage={12}
+                            className="h-full"
+                            onSendMessage={sendTextMessage}
+                            disabled={!isConnected || !currentSessionId}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
