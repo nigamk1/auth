@@ -1,20 +1,28 @@
 import OpenAI from 'openai';
 import { logger } from './logger';
+import { FreeAITeacher } from './freeAI';
 
 // Initialize OpenAI client with error handling
 let openaiClient: OpenAI | null = null;
+let initialized = false;
 
-try {
-  if (process.env.OPENAI_API_KEY) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-    logger.info('[OpenAI] Client initialized successfully');
-  } else {
-    logger.warn('[OpenAI] API key not configured, using fallback responses');
+function initializeOpenAI() {
+  if (initialized) return;
+  
+  try {
+    if (process.env.OPENAI_API_KEY) {
+      openaiClient = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+      logger.info('[OpenAI] Client initialized successfully');
+    } else {
+      logger.warn('[OpenAI] API key not configured, using fallback responses');
+    }
+  } catch (error) {
+    logger.error('[OpenAI] Failed to initialize client:', error);
   }
-} catch (error) {
-  logger.error('[OpenAI] Failed to initialize client:', error);
+  
+  initialized = true;
 }
 
 export interface AITeacherResponse {
@@ -57,61 +65,76 @@ DRAW_TEXT('I (Current)', x=230, y=130)
 DRAW_TEXT('R (Resistance)', x=120, y=200)`;
 
   /**
-   * Get AI teacher response for a student message
+   * Get AI teacher response - prioritizes free AI, falls back to OpenAI if available
    */
   static async getTeacherResponse(
     studentMessage: string
   ): Promise<AITeacherResponse> {
     try {
-      // Check if OpenAI client is available
-      if (!openaiClient) {
-        logger.warn('[OpenAI] Client not available, using fallback response');
-        return this.getFallbackResponse(studentMessage);
-      }
-      // Build conversation history
-      const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-        {
-          role: 'system',
-          content: this.systemPrompt
-        }
-      ];
-
-      // Add current student message
-      messages.push({
-        role: 'user',
-        content: studentMessage
-      });
-
-      logger.info(`[OpenAI] Sending request for student message: "${studentMessage}"`);
-
-      // Make API call to GPT-4
-      const completion = await openaiClient.chat.completions.create({
-        model: 'gpt-4', // Use GPT-4 for best teaching quality
-        messages,
-        max_tokens: 1000,
-        temperature: 0.7, // Balanced creativity and consistency
-        top_p: 0.9,
-      });
-
-      const response = completion.choices[0]?.message?.content;
+      // First, try the free AI teacher (always available)
+      logger.info(`[Free AI] Using comprehensive free AI teacher for: "${studentMessage}"`);
+      const freeResponse = await FreeAITeacher.getTeacherResponse(studentMessage);
       
-      if (!response) {
-        throw new Error('No response from OpenAI');
-      }
-
-      // Parse the response
-      const parsed = this.parseTeacherResponse(response);
+      // Free AI teacher provides excellent responses, so we'll use it as primary
+      return freeResponse;
       
-      logger.info(`[OpenAI] Generated response with ${parsed.drawingInstructions.length} drawing instructions`);
-      
-      return parsed;
-
     } catch (error: any) {
-      logger.error(`[OpenAI] Error getting teacher response: ${error.message}`);
-      
-      // Return fallback response
-      return this.getFallbackResponse(studentMessage);
+      logger.error(`[AI Teacher] Error getting response: ${error.message}`);
+      return this.getFallbackResponse('general');
     }
+  }
+
+  /**
+   * Get response specifically from OpenAI (when available and quota permits)
+   */
+  private static async getOpenAIResponse(
+    studentMessage: string
+  ): Promise<AITeacherResponse> {
+    // Initialize OpenAI client if not already done
+    initializeOpenAI();
+    
+    // Check if OpenAI client is available
+    if (!openaiClient) {
+      throw new Error('OpenAI client not available');
+    }
+
+    // Build conversation history
+    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: this.systemPrompt
+      }
+    ];
+
+    // Add current student message
+    messages.push({
+      role: 'user',
+      content: studentMessage
+    });
+
+    logger.info(`[OpenAI] Sending request for student message: "${studentMessage}"`);
+
+    // Make API call to GPT-3.5-turbo (more widely available)
+    const completion = await openaiClient.chat.completions.create({
+      model: 'gpt-3.5-turbo', // Use GPT-3.5-turbo for better availability
+      messages,
+      max_tokens: 1000,
+      temperature: 0.7, // Balanced creativity and consistency
+      top_p: 0.9,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    
+    if (!response) {
+      throw new Error('No response from OpenAI');
+    }
+
+    // Parse the response
+    const parsed = this.parseTeacherResponse(response);
+    
+    logger.info(`[OpenAI] Generated response with ${parsed.drawingInstructions.length} drawing instructions`);
+    
+    return parsed;
   }
 
   /**

@@ -16,7 +16,8 @@ import classroomRoutes from './routes/classroom';
 import aiTeacherRoutes from './routes/ai-teacher';
 
 // Load environment variables
-dotenv.config();
+import path from 'path';
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
