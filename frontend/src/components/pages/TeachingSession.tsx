@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MicrophoneIcon, StopIcon, SpeakerWaveIcon, SpeakerXMarkIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/solid';
 import { TranscriptDisplay } from '../ui/TranscriptDisplay';
 import { useSpeechRecognition, useSpeechSynthesis } from '../../hooks';
@@ -70,7 +70,7 @@ export const TeachingSession: React.FC = () => {
     return () => {
       endSession();
     };
-  }, []);
+  }, [startSession, setConnectionStatus, endSession]);
 
   // Auto-submit transcript when speech ends and we have content
   useEffect(() => {
@@ -86,7 +86,7 @@ export const TeachingSession: React.FC = () => {
     } else if (session.aiState === 'speaking' && !isSpeaking) {
       setAIState('idle');
     }
-  }, [isSpeaking, session.aiState, setAIState]);
+  }, [isSpeaking, session.aiState]); // Removed setAIState as it's now stable
 
   // Cancel speech when new message starts
   useEffect(() => {
@@ -102,7 +102,7 @@ export const TeachingSession: React.FC = () => {
     } else if (session.userState === 'speaking' && !isListening) {
       setUserState('idle');
     }
-  }, [isListening, session.userState, setUserState]);
+  }, [isListening, session.userState]); // Removed setUserState as it's now stable
 
   // Handle prompting logic
   useEffect(() => {
@@ -118,10 +118,10 @@ export const TeachingSession: React.FC = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [shouldShowPrompt, isUserTurn, isListening, setUserState, startListening]);
+  }, [shouldShowPrompt, isUserTurn, isListening]); // Removed stable functions
 
   // Handle sending message to AI
-  const handleSubmitMessage = async (message: string) => {
+  const handleSubmitMessage = useCallback(async (message: string) => {
     if (!message.trim() || !session.sessionId) return;
 
     // Add user message to session
@@ -142,14 +142,19 @@ export const TeachingSession: React.FC = () => {
         
         console.log('AI Teacher Response:', aiTeacherResponse);
         
+        // Validate API response
+        if (!aiTeacherResponse) {
+          throw new Error('AI Teacher API returned undefined response');
+        }
+        
         // Add AI message to session with drawing instructions (convert to strings)
-        const instructionStrings = aiTeacherResponse.drawingInstructions.map((instr: any) => 
+        const instructionStrings = aiTeacherResponse.drawingInstructions?.map((instr: any) => 
           typeof instr === 'string' ? instr : JSON.stringify(instr)
-        );
-        addAIMessage(aiTeacherResponse.explanation, instructionStrings);
+        ) || [];
+        addAIMessage(aiTeacherResponse.explanation || 'AI response received but no explanation provided', instructionStrings);
         
         // Apply drawing instructions to whiteboard (now handling string instructions)
-        if (aiTeacherResponse.drawingInstructions.length > 0 && whiteboardRef.current) {
+        if (aiTeacherResponse.drawingInstructions?.length > 0 && whiteboardRef.current) {
           console.log('Applying AI drawing instructions:', aiTeacherResponse.drawingInstructions);
           setAIState('drawing');
           whiteboardRef.current.applyDrawingInstructions(aiTeacherResponse.drawingInstructions);
@@ -212,7 +217,7 @@ export const TeachingSession: React.FC = () => {
       setAIState('idle');
       setRetryCount(prev => prev + 1);
     }
-  };
+  }, [session.sessionId, addUserMessage, setAIState, setError, classroomAPI, isTTSEnabled, isTTSSupported, speak, resetTranscript, whiteboardRef]);
 
   // Enhanced microphone click with permission handling
   const handleMicClick = async () => {
@@ -319,7 +324,7 @@ export const TeachingSession: React.FC = () => {
         setError(null);
       }
     }
-  }, [session.aiState, session.lastError, setError]);
+  }, [session.aiState, session.lastError]); // Removed setError as it's now stable
 
   // Map session AI state to component status
   const mapAIStateToStatus = (aiState: typeof session.aiState): 'idle' | 'listening' | 'speaking' | 'loading' => {

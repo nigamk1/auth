@@ -116,10 +116,16 @@ router.post('/', authenticate, async (req: AITeacherRequest, res: Response) => {
     logger.info(`[AI Teacher] Drawing instructions: ${drawingInstructions.length} commands`);
     logger.info(`[AI Teacher] Session saved to MongoDB with ${session.chatLog.length} total messages`);
 
-    // Return response to frontend - EXACT Day 3 format
+    // Return response to frontend - Wrapped in ApiResponse format
     res.json({
-      explanation: aiResponse.explanation,
-      drawingInstructions: aiResponse.drawingInstructions
+      success: true,
+      message: 'AI teacher response generated successfully',
+      data: {
+        explanation: aiResponse.explanation,
+        drawingInstructions: aiResponse.drawingInstructions,
+        sessionId: sessionId,
+        timestamp: new Date().toISOString()
+      }
     });
 
   } catch (error: any) {

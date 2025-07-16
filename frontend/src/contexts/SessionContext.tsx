@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
 // Session state types
 export interface SessionState {
@@ -282,72 +282,76 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [session, dispatch] = useReducer(sessionReducer, initialSessionState);
 
   // Auto-generate session ID when starting
-  const startSession = (subject?: string) => {
+  const startSession = useCallback((subject?: string) => {
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     dispatch({ type: 'START_SESSION', payload: { sessionId, subject } });
-  };
+  }, []);
 
-  const endSession = () => {
+  const endSession = useCallback(() => {
     dispatch({ type: 'END_SESSION' });
-  };
+  }, []);
 
-  const setTopic = (topic: string, step?: number) => {
+  const setTopic = useCallback((topic: string, step?: number) => {
     dispatch({ type: 'SET_TOPIC', payload: { topic, step } });
-  };
+  }, []);
 
-  const advanceStep = (content?: string) => {
+  const advanceStep = useCallback((content?: string) => {
     dispatch({ type: 'ADVANCE_STEP', payload: content ? { content } : undefined });
-  };
+  }, []);
 
-  const addUserMessage = (content: string) => {
+  const addUserMessage = useCallback((content: string) => {
     dispatch({ type: 'ADD_USER_MESSAGE', payload: { content } });
-  };
+  }, []);
 
-  const addAIMessage = (content: string, drawingInstructions?: string[]) => {
+  const addAIMessage = useCallback((content: string, drawingInstructions?: string[]) => {
     dispatch({ type: 'ADD_AI_MESSAGE', payload: { content, drawingInstructions } });
-  };
+  }, []);
 
-  const setAIState = (state: SessionState['aiState']) => {
+  const setAIState = useCallback((state: SessionState['aiState']) => {
     dispatch({ type: 'SET_AI_STATE', payload: state });
-  };
+  }, []);
 
-  const setUserState = (state: SessionState['userState']) => {
+  const setUserState = useCallback((state: SessionState['userState']) => {
     dispatch({ type: 'SET_USER_STATE', payload: state });
-  };
+  }, []);
 
-  const setExpectingInput = (expecting: boolean) => {
+  const setExpectingInput = useCallback((expecting: boolean) => {
     dispatch({ type: 'SET_EXPECTING_INPUT', payload: expecting });
-  };
+  }, []);
 
-  const setShouldPrompt = (should: boolean) => {
+  const setShouldPrompt = useCallback((should: boolean) => {
     dispatch({ type: 'SET_SHOULD_PROMPT', payload: should });
-  };
+  }, []);
 
-  const setWaitingResponse = (waiting: boolean) => {
+  const setWaitingResponse = useCallback((waiting: boolean) => {
     dispatch({ type: 'SET_WAITING_RESPONSE', payload: waiting });
-  };
+  }, []);
 
-  const updateLearningProgress = (progress: { goals?: string[]; completed?: string[]; struggling?: string[] }) => {
+  const updateLearningProgress = useCallback((progress: { goals?: string[]; completed?: string[]; struggling?: string[] }) => {
     dispatch({ type: 'UPDATE_LEARNING_PROGRESS', payload: progress });
-  };
+  }, []);
 
-  const setError = (error: string | null) => {
+  const setError = useCallback((error: string | null) => {
     dispatch({ type: 'SET_ERROR', payload: error });
-  };
+  }, []);
 
-  const setConnectionStatus = (status: SessionState['connectionStatus']) => {
+  const setConnectionStatus = useCallback((status: SessionState['connectionStatus']) => {
     dispatch({ type: 'SET_CONNECTION_STATUS', payload: status });
-  };
+  }, []);
 
-  const resetSession = () => {
+  const resetSession = useCallback(() => {
     dispatch({ type: 'RESET_SESSION' });
-  };
+  }, []);
 
   // Computed properties
   const isAIBusy = session.aiState === 'processing' || session.aiState === 'speaking' || session.aiState === 'drawing';
   const isUserTurn = session.expectingUserInput && !session.waitingForResponse && !isAIBusy;
   const shouldShowPrompt = session.shouldPromptUser && isUserTurn;
-  const sessionDuration = session.startTime ? Date.now() - session.startTime.getTime() : null;
+  
+  // Use useMemo for sessionDuration to avoid re-calculating on every render
+  const sessionDuration = React.useMemo(() => {
+    return session.startTime ? Date.now() - session.startTime.getTime() : null;
+  }, [session.startTime, session.isSessionActive]); // Only recalculate when session starts/ends
 
   // Auto-manage prompting based on AI state changes
   useEffect(() => {
