@@ -41,4 +41,82 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   );
 };
 
+interface PulsingDotsProps {
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'gray';
+  className?: string;
+}
+
+export const PulsingDots: React.FC<PulsingDotsProps> = ({ 
+  color = 'blue',
+  className = '' 
+}) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    yellow: 'bg-yellow-500',
+    red: 'bg-red-500',
+    gray: 'bg-gray-500'
+  };
+
+  return (
+    <div className={`flex space-x-1 ${className}`}>
+      <div 
+        className={`w-2 h-2 ${colorClasses[color]} rounded-full animate-pulse`}
+        style={{ animationDelay: '0ms' }}
+      />
+      <div 
+        className={`w-2 h-2 ${colorClasses[color]} rounded-full animate-pulse`}
+        style={{ animationDelay: '150ms' }}
+      />
+      <div 
+        className={`w-2 h-2 ${colorClasses[color]} rounded-full animate-pulse`}
+        style={{ animationDelay: '300ms' }}
+      />
+    </div>
+  );
+};
+
+interface WaveAnimationProps {
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'gray';
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+export const WaveAnimation: React.FC<WaveAnimationProps> = ({ 
+  color = 'blue',
+  size = 'md',
+  className = '' 
+}) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    yellow: 'bg-yellow-500',
+    red: 'bg-red-500',
+    gray: 'bg-gray-500'
+  };
+
+  const sizeClasses = {
+    sm: 'w-1 h-4',
+    md: 'w-1 h-6',
+    lg: 'w-2 h-8'
+  };
+
+  return (
+    <div className={`flex items-end justify-center space-x-1 ${className}`}>
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className={`${sizeClasses[size]} ${colorClasses[color]} rounded-sm animate-pulse`}
+          style={{
+            animationDelay: `${i * 100}ms`,
+            animationDuration: '800ms',
+            animationDirection: 'alternate',
+            animationIterationCount: 'infinite'
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 export default LoadingSpinner;

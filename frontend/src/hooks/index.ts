@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import type { UseToastResult } from '../types';
 
+// Export speech recognition hook
+export { useSpeechRecognition } from './useSpeechRecognition';
+
+// Export speech synthesis hook
+export { useSpeechSynthesis } from './useSpeechSynthesis';
+
 // Toast hook for notifications
 export const useToast = (): UseToastResult => {
   const [toast, setToast] = useState<{

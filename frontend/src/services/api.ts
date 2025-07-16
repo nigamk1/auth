@@ -16,7 +16,7 @@ import type {
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : 'http://localhost:5000/api',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -252,6 +252,175 @@ export const healthAPI = {
   check: async (): Promise<any> => {
     const response = await api.get('/health');
     return response.data;
+  }
+};
+
+// AI Classroom API
+export const classroomAPI = {
+  // Send student message to AI teacher
+  sendMessage: async (
+    studentMessage: string, 
+    sessionId: string, 
+    context?: { subject?: string; studentLevel?: string }
+  ): Promise<{ 
+    explanation: string; 
+    drawingInstructions: Array<{
+      type: string;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+      text?: string;
+      color?: string;
+    }>; 
+    sessionId: string;
+    timestamp: string;
+  }> => {
+    const response = await api.post<ApiResponse<{
+      explanation: string;
+      drawingInstructions: Array<{
+        type: string;
+        x?: number;
+        y?: number;
+        width?: number;
+        height?: number;
+        text?: string;
+        color?: string;
+      }>;
+      sessionId: string;
+      timestamp: string;
+    }>>('/ai-teacher', {
+      studentMessage,
+      sessionId,
+      context
+    });
+    return response.data.data!;
+  },
+
+  // Get session history
+  getSession: async (sessionId: string): Promise<{
+    sessionId: string;
+    subject?: string;
+    createdAt: string;
+    lastActivity: string;
+    messageCount: number;
+    messages: Array<{
+      role: 'user' | 'assistant';
+      content: string;
+      timestamp: string;
+    }>;
+  }> => {
+    const response = await api.get<ApiResponse<{
+      sessionId: string;
+      subject?: string;
+      createdAt: string;
+      lastActivity: string;
+      messageCount: number;
+      messages: Array<{
+        role: 'user' | 'assistant';
+        content: string;
+        timestamp: string;
+      }>;
+    }>>(`/ai-teacher/session/${sessionId}`);
+    return response.data.data!;
+  },
+
+  // Delete a session
+  deleteSession: async (sessionId: string): Promise<void> => {
+    await api.delete<ApiResponse>(`/ai-teacher/session/${sessionId}`);
+  },
+
+  // Get all user sessions
+  getAllSessions: async (): Promise<Array<{
+    sessionId: string;
+    subject?: string;
+    createdAt: string;
+    lastActivity: string;
+    messageCount: number;
+  }>> => {
+    const response = await api.get<ApiResponse<Array<{
+      sessionId: string;
+      subject?: string;
+      createdAt: string;
+      lastActivity: string;
+      messageCount: number;
+    }>>>('/ai-teacher/sessions');
+    return response.data.data!;
+  },
+
+  // Update session state
+  updateSessionState: async (sessionId: string, stateUpdate: {
+    currentTopic?: string;
+    currentStep?: number;
+    aiState?: string;
+    userState?: string;
+    expectingUserInput?: boolean;
+    shouldPromptUser?: boolean;
+    learningGoals?: string[];
+    completedConcepts?: string[];
+    strugglingAreas?: string[];
+  }): Promise<{
+    currentTopic: string | null;
+    currentStep: number;
+    aiState: string;
+    userState: string;
+    expectingUserInput: boolean;
+    shouldPromptUser: boolean;
+  }> => {
+    const response = await api.put<ApiResponse<{
+      currentTopic: string | null;
+      currentStep: number;
+      aiState: string;
+      userState: string;
+      expectingUserInput: boolean;
+      shouldPromptUser: boolean;
+    }>>(`/ai-teacher/session/${sessionId}/state`, stateUpdate);
+    return response.data.data!;
+  },
+
+  // Add topic progress
+  addTopicProgress: async (sessionId: string, progress: {
+    content?: string;
+    completed?: boolean;
+  }): Promise<{
+    step: number;
+    content: string;
+    completed: boolean;
+    timestamp: string;
+  }> => {
+    const response = await api.post<ApiResponse<{
+      step: number;
+      content: string;
+      completed: boolean;
+      timestamp: string;
+    }>>(`/ai-teacher/session/${sessionId}/topic-progress`, progress);
+    return response.data.data!;
+  },
+
+  // Legacy methods for backward compatibility (using old classroom routes)
+  legacySendMessage: async (message: string): Promise<{ response: string; shouldDrawOnBoard?: boolean; boardContent?: any }> => {
+    const response = await api.post<ApiResponse<{ response: string; shouldDrawOnBoard?: boolean; boardContent?: any }>>('/classroom/message', {
+      message
+    });
+    return response.data.data!;
+  },
+
+  startSession: async (subject?: string): Promise<{ sessionId: string; greeting: string }> => {
+    const response = await api.post<ApiResponse<{ sessionId: string; greeting: string }>>('/classroom/session/start', {
+      subject
+    });
+    return response.data.data!;
+  },
+
+  endSession: async (sessionId: string): Promise<void> => {
+    await api.post<ApiResponse>('/classroom/session/end', {
+      sessionId
+    });
+  },
+
+  getSessionHistory: async (): Promise<any[]> => {
+    const response = await api.get<ApiResponse<any[]>>('/classroom/sessions');
+    return response.data.data!;
   }
 };
 

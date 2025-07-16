@@ -12,6 +12,8 @@ import { logger } from './utils/logger';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import protectedRoutes from './routes/protected';
+import classroomRoutes from './routes/classroom';
+import aiTeacherRoutes from './routes/ai-teacher';
 
 // Load environment variables
 dotenv.config();
@@ -91,6 +93,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/protected', protectedRoutes);
+app.use('/api/classroom', classroomRoutes);
+app.use('/api/ai-teacher', aiTeacherRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
